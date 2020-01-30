@@ -71,9 +71,14 @@ def process_data(api_data):
         delay = "Not Live"
     return destination, departureTimeDisplay, delay
 
+def create_folder(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+
 def main():
     mvg_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700?footway=0"
-    api_file = "data/departures.p"
+    create_folder(data_folder)
+    api_file = os.path.join(data_folder, "departures.p")
     lock = threading.Lock()
     content = list()
     fetch_data(mvg_api, api_file, lock)
