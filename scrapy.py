@@ -102,10 +102,13 @@ def main():
                 break
         i = 0
 
-        display.write_first_line("S8: " + str(content[0][1]))
         header = ["Richtung", "Minuten", "Verspätung"]
         print(tabulate(content, headers=header))
         print("")
+
+        if isinstance(content, list) and len(content) > 0 and isinstance(content[0], list) and len(content[0]) > 0:
+            display.write_first_line("S8: " + str(content[0][1]))
+        
         content = list()
         time.sleep(1)
 
