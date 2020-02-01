@@ -9,6 +9,7 @@ import pickle
 import time
 import logging
 import os
+from display import DisplayDriver
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -76,13 +77,14 @@ def create_folder(path):
         os.makedirs(path)
 
 def main():
-    mvg_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700?footway=0"
+    mvg_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700"
     create_folder(data_folder)
     api_file = os.path.join(data_folder, "departures.p")
     lock = threading.Lock()
     content = list()
     fetch_data(mvg_api, api_file, lock)
     respObj = pickle.load(open(api_file, "rb"))
+    display = DisplayDriver()
     i = 0
     refresh_counter = 0
     while True:
@@ -100,6 +102,7 @@ def main():
                 break
         i = 0
 
+        display.write_first_line("S8: " + str(content[0][1]))
         header = ["Richtung", "Minuten", "Verspätung"]
         print(tabulate(content, headers=header))
         print("")
