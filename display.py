@@ -24,10 +24,10 @@ class DisplayDriver():
                      width=width, height=height)
 
 
-    def write_first_line(self, text):
+    def write_first_line(self, data):
         with canvas(self.device) as draw:
-            text(draw, (0, 0), text, fill="white", font=proportional(LCD_FONT))
+            text(draw, (0, 0), data, fill="white", font=proportional(LCD_FONT))
 
-    def write_second_line(self, text):
+    def write_second_line(self, data):
         with canvas(self.device) as draw:
-            text(draw, (0, 8), text, fill="white", font=proportional(LCD_FONT))
+            text(draw, (0, 8), data, fill="white", font=proportional(LCD_FONT))
