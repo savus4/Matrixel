@@ -26,7 +26,7 @@ class DisplayDriver():
 
     def show_image(self, path, x, y):
         with canvas(self.device) as draw:
-            draw.point([0,8,1,9,2,10,3,11,4,12])
+            draw.point([0,8,1,9,2,10,3,11,4,12], fill="white")
             
 
     def write_first_line(self, data):
