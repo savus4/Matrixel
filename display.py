@@ -26,7 +26,7 @@ class DisplayDriver():
 
     def write_first_line(self, data):
         with canvas(self.device) as draw:
-            text(draw, (0, 0), data, fill="white", font=proportional(LCD_FONT))
+            text(draw, (0, 0), data, fill="white", font=proportional(TINY_FONT))
 
     def write_second_line(self, data):
         with canvas(self.device) as draw:
