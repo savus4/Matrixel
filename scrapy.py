@@ -159,6 +159,8 @@ def main():
         if isinstance(content, list) and len(content) > 0 and isinstance(content[0], list) and len(content[0]) > 0:
             display.write_first_line("S8: " + make_string_from_list(min_list))
             pass
+
+        display.show_image("a", 0, 1)
         
         content = list()
         time.sleep(1)
