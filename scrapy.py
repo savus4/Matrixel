@@ -122,7 +122,7 @@ def create_folder(path):
 def make_string_from_list(list):
     res = ""
     for elem in list:
-        res += elem + ", "
+        res += str(elem) + ", "
     return res[0:-2]
 
 def main():
