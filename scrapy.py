@@ -37,6 +37,50 @@ def load_data(api_file, lock):
     lock.release()
     return respObj
 
+def get_minutes(search_for, amount, api_data):
+    min_list = list()
+    for departure in api_data["departures"]:
+        if amount == 0:
+            break
+        if departure["destination"].find(search_for) != -1:
+            destination = departure["destination"]
+            cancelled = departure["cancelled"]
+            delayKey = "delay"
+            live = True
+            if delayKey in departure.keys():
+                delay = departure["delay"]
+            else:
+                delay = 0
+                live = False
+            sev: bool = departure["sev"]
+
+            if not cancelled:
+                seconds = floor((dt.datetime.fromtimestamp(floor(
+                    departure["departureTime"]/1000)) - dt.datetime.now()).total_seconds()) + (delay * 60)
+                if seconds > 0:
+                    minutes = floor(seconds / 60)
+                    secondsUnderSixty: str = seconds
+                    while seconds >= 60:
+                        seconds -= 60
+                        secondsUnderSixty = seconds
+                    #departureTimeDisplay: str = str(
+                    #    minutes) + "m " + str(secondsUnderSixty) + "s"
+                else:
+                    minutes = 0
+                    departureTimeDisplay = "Jetzt"
+                min_list.append(minutes)
+                if sev:
+                    destination += " SEV"
+            else:
+                departureTimeDisplay = "X"
+            if live:
+                delay = str(delay) + "m"
+            else:
+                delay = "Not Live"
+            amount -= 1
+    return min_list
+        
+
 def process_data(api_data):
     destination = api_data["destination"]
     cancelled = api_data["cancelled"]
@@ -48,7 +92,6 @@ def process_data(api_data):
         delay = 0
         live = False
     sev: bool = api_data["sev"]
-
     if not cancelled:
         seconds = floor((dt.datetime.fromtimestamp(floor(
             api_data["departureTime"]/1000)) - dt.datetime.now()).total_seconds()) + (delay * 60)
@@ -76,6 +119,12 @@ def create_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+def make_string_from_list(list):
+    res = ""
+    for elem in list:
+        res += elem + ", "
+    return res[0:-2]
+
 def main():
     mvg_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700"
     create_folder(data_folder)
@@ -94,6 +143,7 @@ def main():
             start_data_fetch_thread(mvg_api, api_file, lock)
             refresh_counter = 0
         refresh_counter += 1
+        min_list = get_minutes("Flughafen", 3, respObj)
         for api_data in respObj["departures"]:
             destination, departure_time_display, delay = process_data(api_data)
             content.append([destination, departure_time_display, delay])
@@ -107,7 +157,8 @@ def main():
         print("")
 
         if isinstance(content, list) and len(content) > 0 and isinstance(content[0], list) and len(content[0]) > 0:
-            display.write_first_line("S8: " + str(content[0][1]))
+            display.write_first_line("S8: " + make_string_from_list(min_list))
+            pass
         
         content = list()
         time.sleep(1)
