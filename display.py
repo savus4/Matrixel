@@ -25,8 +25,12 @@ class DisplayDriver():
                      width=width, height=height)
 
     def show_image(self, path, x, y):
+        virtual = viewport(self.device, 8, 8)
         with canvas(self.device) as draw:
-            draw.point([0,8,1,9,2,10,3,11,4,12], fill="white")
+            draw.point([0,8,1,9,2,10,3,11,4,12, 5, 11, 6, 10, 7, 9, 8, 8], fill="white")
+        for offset in range(8):
+            virtual.set_position((offset, offset))
+            time.sleep(0.5)
             
 
     def write_first_line(self, data):
