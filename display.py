@@ -24,13 +24,28 @@ class DisplayDriver():
                      rotate=rotate or 0, blocks_arranged_in_reverse_order=inreverse,
                      width=width, height=height)
 
-    def show_image(self, path, x, y):
-        virtual = viewport(self.device, 8, 8)
+    def show_image(self, path, offset_x, offset_y):
+        display_list = list()
+        with open(path) as picture:
+            line = picture.readline()
+            x = offset_x
+            y = offset_y
+            while line:
+                line = line.strip()
+                for char in line:
+                    if char == "*":
+                        display_list.append(x)
+                        display_list.append(y)
+                    x += 1
+                line = picture.readline()
+                x = offset_x
+                y += 1
+        #virtual = viewport(self.device, 8, 8)
         with canvas(self.device) as draw:
-            draw.point([0,8,1,9,2,10,3,11,4,12, 5, 11, 6, 10, 7, 9, 8, 8], fill="white")
-        for offset in range(8):
-            virtual.set_position((offset, offset))
-            time.sleep(0.5)
+            draw.point(display_list, fill="white")
+        #for offset in range(8):
+        #    virtual.set_position((offset, offset))
+        #    time.sleep(0.5)
             
 
     def write_first_line(self, data):
@@ -40,3 +55,4 @@ class DisplayDriver():
     def write_second_line(self, data):
         with canvas(self.device) as draw:
             text(draw, (0, 8), data, fill="white", font=proportional(LCD_FONT))
+
