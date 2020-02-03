@@ -30,6 +30,11 @@ class DisplayDriver():
     def s_bahn_layout(self, s8_flughafen_minutes, s8_herrsching_minutes):
         if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
                 s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
+            if (s8_flughafen_minutes_cache < s8_flughafen_minutes and s8_flughafen_minutes_cache < 2 and
+                s8_flughafen_minutes < 5):
+                animate_flughafen = True
+            else:
+                animate_flughafen = False
             self.s8_flughafen_minutes_cache = s8_flughafen_minutes
             self.s8_herrsching_minutes_cache = s8_herrsching_minutes
             with canvas(self.device) as draw:
