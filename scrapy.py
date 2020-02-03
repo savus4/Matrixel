@@ -10,6 +10,7 @@ import time
 import logging
 import os
 from display import DisplayDriver
+from helper import make_string_from_list
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -119,12 +120,6 @@ def create_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def make_string_from_list(list):
-    res = ""
-    for elem in list:
-        res += str(elem) + ", "
-    return res[0:-2]
-
 def main():
     mvg_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700"
     create_folder(data_folder)
@@ -143,7 +138,8 @@ def main():
             start_data_fetch_thread(mvg_api, api_file, lock)
             refresh_counter = 0
         refresh_counter += 1
-        min_list = get_minutes("Flughafen", 3, respObj)
+        min_list_flughafen_s_bahn = get_minutes("Flughafen", 3, respObj)
+        min_list_city_s_bahn = get_minutes("Herrsching", 3, respObj)
         for api_data in respObj["departures"]:
             destination, departure_time_display, delay = process_data(api_data)
             content.append([destination, departure_time_display, delay])
@@ -155,13 +151,8 @@ def main():
         header = ["Richtung", "Minuten", "Verspätung"]
         print(tabulate(content, headers=header))
         print("")
-
-        if isinstance(content, list) and len(content) > 0 and isinstance(content[0], list) and len(content[0]) > 0:
-            display.write_first_line("S8: " + make_string_from_list(min_list))
-            pass
-
-        display.show_image("icons/airplane.txt", 0, 8)
-        
+        display.s_bahn_layout(min_list_flughafen_s_bahn, min_list_city_s_bahn)
+ 
         content = list()
         time.sleep(1)
 
