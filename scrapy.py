@@ -15,13 +15,32 @@ from helper import make_string_from_list
 
 logging.basicConfig(level=logging.DEBUG)
 
-show_next_connections = 4
+show_next_connections = 5
 data_folder = "data/"
+s8_into_city = ["Herrsching", "Weßling", "Gilching-Argelsried", "Pasing", "Ostbahnhof", "Leuchtenbergring"]
+s8_into_city_warning = ["Ostbahnhof", "Leuchtenbergring", "Rosenheimer", "Isartor"]
+s8_to_airport = ["Flughafen", "Ismaning", "Unterföhring"]
+s8_to_airport_warning = ["Unterföhring"]
 
 def fetch_data(url, file, lock):
     logging.debug("Fetched data at " +
                   str(dt.datetime.now().strftime("%H:%M:%S")) + "!")
     resp: requests.Response = requests.get(url)
+    respObj = json.loads(resp.content)
+    lock.acquire()
+    pickle.dump(respObj, open(file, "w+b"))
+    lock.release()
+
+def first_fetch_data(url, file, lock):
+    resp = None
+    while True:
+        logging.debug("Fetched data at " +
+                    str(dt.datetime.now().strftime("%H:%M:%S")) + "!")       
+        resp: requests.Response = requests.get(url)
+        if resp.content == None or len(resp.content) == 0:
+            time.sleep(10)
+        else:
+            break
     respObj = json.loads(resp.content)
     lock.acquire()
     pickle.dump(respObj, open(file, "w+b"))
@@ -41,44 +60,46 @@ def load_data(api_file, lock):
 def get_minutes(search_for, amount, api_data):
     min_list = list()
     for departure in api_data["departures"]:
+        abfahrt_dict = dict()
         if amount == 0:
             break
-        if departure["destination"].find(search_for) != -1:
-            destination = departure["destination"]
-            cancelled = departure["cancelled"]
-            delayKey = "delay"
-            live = True
-            if delayKey in departure.keys():
-                delay = departure["delay"]
-            else:
-                delay = 0
-                live = False
-            sev: bool = departure["sev"]
-
-            if not cancelled:
-                seconds = floor((dt.datetime.fromtimestamp(floor(
-                    departure["departureTime"]/1000)) - dt.datetime.now()).total_seconds()) + (delay * 60)
-                if seconds > 0:
-                    minutes = floor(seconds / 60)
-                    secondsUnderSixty: str = seconds
-                    while seconds >= 60:
-                        seconds -= 60
-                        secondsUnderSixty = seconds
-                    #departureTimeDisplay: str = str(
-                    #    minutes) + "m " + str(secondsUnderSixty) + "s"
+        for current_search in search_for:
+            if departure["destination"].find(current_search) != -1:
+                destination = departure["destination"]
+                abfahrt_dict["destination"] = departure["destination"]
+                cancelled = departure["cancelled"]
+                delayKey = "delay"
+                live = True
+                if delayKey in departure.keys():
+                    delay = departure["delay"]
                 else:
-                    minutes = 0
-                    departureTimeDisplay = "Jetzt"
-                min_list.append(minutes)
-                if sev:
-                    destination += " SEV"
-            else:
-                departureTimeDisplay = "X"
-            if live:
-                delay = str(delay) + "m"
-            else:
-                delay = "Not Live"
-            amount -= 1
+                    delay = 0
+                    live = False
+                sev: bool = departure["sev"]
+                if not cancelled:
+                    abfahrt_dict["time"] = dt.datetime.fromtimestamp(departure["departureTime"]/1000)
+                    seconds = floor((dt.datetime.fromtimestamp(floor(
+                        departure["departureTime"]/1000)) - dt.datetime.now()).total_seconds()) + (delay * 60)
+                    if seconds > 0:
+                        minutes = floor(seconds / 60)
+                        secondsUnderSixty: str = seconds
+                        while seconds >= 60:
+                            seconds -= 60
+                            secondsUnderSixty = seconds
+                    else:
+                        minutes = 0
+                        departureTimeDisplay = "Jetzt"
+                    abfahrt_dict["minutes"] = minutes
+                    min_list.append(abfahrt_dict)
+                    if sev:
+                        destination += " SEV"
+                else:
+                    departureTimeDisplay = "X"
+                if live:
+                    delay = str(delay) + "m"
+                else:
+                    delay = "Not Live"
+                amount -= 1
     return min_list
         
 
@@ -126,7 +147,7 @@ def main():
     api_file = os.path.join(data_folder, "departures.p")
     lock = threading.Lock()
     content = list()
-    fetch_data(mvg_api, api_file, lock)
+    first_fetch_data(mvg_api, api_file, lock)
     respObj = pickle.load(open(api_file, "rb"))
     display = DisplayDriver()
     i = 0
@@ -138,8 +159,8 @@ def main():
             start_data_fetch_thread(mvg_api, api_file, lock)
             refresh_counter = 0
         refresh_counter += 1
-        min_list_flughafen_s_bahn = get_minutes("Flughafen", 3, respObj)
-        min_list_city_s_bahn = get_minutes("Herrsching", 3, respObj)
+        min_list_flughafen_s_bahn = get_minutes(s8_to_airport, 3, respObj)
+        min_list_city_s_bahn = get_minutes(s8_into_city, 3, respObj)
         for api_data in respObj["departures"]:
             destination, departure_time_display, delay = process_data(api_data)
             content.append([destination, departure_time_display, delay])
