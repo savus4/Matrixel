@@ -33,15 +33,14 @@ def fetch_mvg_data(url, file, lock, search_for, next_connections, period):
     while True:
         logging.debug("Fetched data at " +
                     str(dt.datetime.now().strftime("%H:%M:%S")) + "!")
-        resp: requests.Response = requests.get(url)
-        respObj = json.loads(resp.content)
-        current_line = get_minutes(cur_search, next_connections, respObj)
-        lock.acquire()
-        pickle.dump(current_line, open(file, "w+b"))
-        lock.release()
+        try:
+            resp: requests.Response = requests.get(url, timeout=10)
+            respObj = json.loads(resp.content)
+            current_line = get_minutes(cur_search, next_connections, respObj)
+            lock.acquire()
+            pickle.dump(current_line, open(file, "w+b"))
+            lock.release()
         time.sleep(period)
-
-
 
 def start_up(url, file, lock):
     global run_loading_screen

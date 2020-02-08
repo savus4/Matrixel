@@ -1,14 +1,35 @@
 import scrapy
 
+daglfing_sbahn_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700"
+
+s8_into_city = ["Herrsching", "Weßling", "Gilching-Argelsried", "Pasing", "Ostbahnhof", "Leuchtenbergring"]
+s8_into_city_warning = ["Ostbahnhof", "Leuchtenbergring", "Rosenheimer", "Isartor"]
+s8_to_airport = ["Flughafen", "Ismaning", "Unterföhring"]
+s8_to_airport_warning = ["Unterföhring"]
+
+next_connections = 3
+period = 45 # Data fetch period in seconds
+
 def main():
-    mvg_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700"
     create_folder(data_folder)
-    api_file = os.path.join(data_folder, "departures.p")
     lock = threading.Lock()
-    threading.Thread(target=fe)
-    content = list()
     start_up(mvg_api, api_file, lock)
+    # Start Fetch Thread for S8 downtown from Daglfing
+    daglfing_sbahn_into_city_file = os.path.join(data_folder, "daglfing_sbahn_into_city.p")
+    daglfing_sbahn_into_city_thread = threading.Thread(target=scrapy.fetch_mvg_data, 
+                                                       args=(daglfing_sbahn_api, daglfing_sbahn_into_city_file, 
+                                                       lock, s8_into_city, next_connections, period))
+    daglfing_sbahn_into_city_thread.start()
+
+    # Start Fetch Thread for S8 to airport from Daglfing
+    daglfing_sbahn_airport_file = os.path.join(data_folder, "daglfing_sbahn_airport.p")
+    daglfing_sbahn_airport_thread = threading.Thread(target= scrapy.fetch_mvg_data,
+                                                     args=(daglfing_sbahn_api, daglfing_sbahn_airport_file,
+                                                     lock, s8_to_airport, next_connections, period))
+    daglfing_sbahn_airport_thread.start()
+    content = list()
     respObj = pickle.load(open(api_file, "rb"))
+    
     i = 0
     refresh_counter = 0
     while True:
