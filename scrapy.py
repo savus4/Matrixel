@@ -20,7 +20,6 @@ from luma.core.legacy import text, show_message
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
 
 
-
 logging.basicConfig(level=logging.DEBUG)
 
 show_next_connections = 5
@@ -30,14 +29,19 @@ s8_into_city_warning = ["Ostbahnhof", "Leuchtenbergring", "Rosenheimer", "Isarto
 s8_to_airport = ["Flughafen", "Ismaning", "Unterföhring"]
 s8_to_airport_warning = ["Unterföhring"]
 
-def fetch_data(url, file, lock):
-    logging.debug("Fetched data at " +
-                  str(dt.datetime.now().strftime("%H:%M:%S")) + "!")
-    resp: requests.Response = requests.get(url)
-    respObj = json.loads(resp.content)
-    lock.acquire()
-    pickle.dump(respObj, open(file, "w+b"))
-    lock.release()
+def fetch_mvg_data(url, file, lock, search_for, next_connections, period):
+    while True:
+        logging.debug("Fetched data at " +
+                    str(dt.datetime.now().strftime("%H:%M:%S")) + "!")
+        resp: requests.Response = requests.get(url)
+        respObj = json.loads(resp.content)
+        current_line = get_minutes(cur_search, next_connections, respObj)
+        lock.acquire()
+        pickle.dump(current_line, open(file, "w+b"))
+        lock.release()
+        time.sleep(period)
+
+
 
 def start_up(url, file, lock):
     global run_loading_screen
