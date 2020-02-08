@@ -1,5 +1,6 @@
 # Custom
 data/
+nohup.out
 
 # VS Code
 .vscode/*
