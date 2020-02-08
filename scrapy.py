@@ -10,7 +10,15 @@ import time
 import logging
 import os
 from display import DisplayDriver
-from helper import make_string_from_list
+from helper import make_string_from_list, get_image_as_list
+
+from luma.core.interface.serial import spi, noop
+from luma.core.render import canvas
+from luma.core.virtual import viewport
+from luma.led_matrix.device import max7219
+from luma.core.legacy import text, show_message
+from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
+
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -31,7 +39,47 @@ def fetch_data(url, file, lock):
     pickle.dump(respObj, open(file, "w+b"))
     lock.release()
 
-def first_fetch_data(url, file, lock):
+def start_up(url, file, lock):
+    global run_loading_screen
+    run_loading_screen = True
+    loading_screen_thread = threading.Thread(target=loading_screen)
+    loading_screen_thread.start()
+    fetch_data_with_repeat(url, file, lock)
+    run_loading_screen = False
+    time.sleep(0.3)
+
+def loading_screen():
+    block_orientation = -90
+    rotate = 0
+    inreverse = False
+    width = 64
+    height = 16
+    serial = spi(port=0, device=0, gpio=noop())
+    device = max7219(serial, block_orientation=block_orientation,
+                            rotate=rotate or 0, blocks_arranged_in_reverse_order=inreverse,
+                            width=width, height=height)
+    device.contrast(0x10)
+
+    x = 0
+    global run_loading_screen
+    while (run_loading_screen):
+        with canvas(device) as draw:
+            loading_screen_width = 39
+            draw.point(get_image_as_list(
+                "icons/loading.txt", x, 8), fill="white")
+            draw.point(get_image_as_list(
+                "icons/loading.txt", x+loading_screen_width, 8), fill="white")
+            draw.point(get_image_as_list(
+                "icons/loading.txt", x+(loading_screen_width*2), 8), fill="white")
+            x -= 1
+            if x == -loading_screen_width:
+                x = 0
+            #self.display_minutes(draw, s8_herrsching_minutes, self.s8_herrsching_minutes_cache, 9, 0)
+            text(draw, (0, 0), "Dagl-Info", fill="white", font=proportional(LCD_FONT))
+    #device.cleanup()
+    print("Loaded!")
+
+def fetch_data_with_repeat(url, file, lock):
     resp = None
     while True:
         logging.debug("Fetched data at " +
@@ -142,19 +190,22 @@ def create_folder(path):
         os.makedirs(path)
 
 def main():
+    display = DisplayDriver()
     mvg_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700"
     create_folder(data_folder)
     api_file = os.path.join(data_folder, "departures.p")
     lock = threading.Lock()
     content = list()
-    first_fetch_data(mvg_api, api_file, lock)
+    start_up(mvg_api, api_file, lock)
+    #first_fetch_data(mvg_api, api_file, lock, display)
     respObj = pickle.load(open(api_file, "rb"))
-    display = DisplayDriver()
     i = 0
     refresh_counter = 0
     while True:
         if refresh_counter == 4:
-            respObj = load_data(api_file, lock)
+            tempRespObj = load_data(api_file, lock)
+            if "departures" in tempRespObj.keys() and len(tempRespObj["departures"]) > 0:
+                respObj = tempRespObj
         if refresh_counter >= 45:
             start_data_fetch_thread(mvg_api, api_file, lock)
             refresh_counter = 0

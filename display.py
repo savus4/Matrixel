@@ -9,7 +9,7 @@ from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_
 from PIL import Image
 import re
 import time
-from helper import make_string_from_list
+from helper import make_string_from_list, get_width, get_image_as_list
 import datetime
 
 
@@ -29,17 +29,48 @@ class DisplayDriver():
         self.s8_flughafen_minutes_cache = list()
         self.s8_herrsching_minutes_cache = list()
 
+
     def set_brightness(self):
-        start = datetime.time(21, 00)
-        end = datetime.time(22, 42)
+        start = datetime.time(21, 00) # + eine Stunde rechnen für richtige Zeit (schaltet um 22 Uhr um)
+        end = datetime.time(6, 30)
         timestamp = datetime.datetime.now().time()
-        if timestamp < end and timestamp > start:
+        if True or timestamp < end and timestamp > start: # TODO: Automatic switching doesnt work
             print("dark")
             self.device.contrast(0x0)
         else:
             print("bright")
-            self.device.contrast(0xA0)
+            self.device.contrast(0x60)
 
+    def display_minutes(self, draw, minutes, cache, x, y):
+        animate = False
+        if not (minutes == cache):
+            if (len(cache) != 0 and len(minutes) != 0 and 
+                (cache[0]["minutes"] < minutes[0]["minutes"] and 
+                cache["minutes"] < 2 and
+                minutes[0]["minutes"] < 5)):
+                animate = True
+
+        soonest_bahn = True
+        for departure in minutes:
+            minute = departure["minutes"]
+            width = get_width(minute)
+            if soonest_bahn and animate:
+                pass
+                soonest_bahn = False
+            #print(str(minute) + ": " + str(x) + "/" + str(y))
+            text(draw, (x, y), str(minute),
+                fill="white", font=proportional(LCD_FONT))
+            x += width + 1
+            draw.point([x, y+5, x, y+6], fill="white")
+            text(draw, (x, y), " ",
+                    fill="white", font=proportional(LCD_FONT))
+            x += 2
+        draw.point([x-3, y, x-2, y, x-3, y+1, x-2, y+1, x-3, y+2, 
+                   x-2, y+2, x-3, y+3, x-2, y+3, x-3, y+4, x-2, y+4, 
+                   x-3, y+5, x-2, y+5, x-3, y+6, x-2, y+6], fill="black")
+        text(draw, (x-3, y), "  ",
+                    fill="white", font=proportional(LCD_FONT))
+                
     def s_bahn_layout(self, s8_flughafen_minutes, s8_herrsching_minutes):
         self.set_brightness()
         print(str(s8_flughafen_minutes))
@@ -55,33 +86,16 @@ class DisplayDriver():
             self.s8_flughafen_minutes_cache = s8_flughafen_minutes
             self.s8_herrsching_minutes_cache = s8_herrsching_minutes
             with canvas(self.device) as draw:
-                draw.point(self.get_image_as_list(
+                draw.point(get_image_as_list(
                     "icons/city.txt", 0, 0), fill="white")
-                draw.point(self.get_image_as_list(
+                draw.point(get_image_as_list(
                     "icons/airplane.txt", 0, 8), fill="white")
-                text(draw, (9, 0), make_string_from_list(s8_herrsching_minutes),
-                     fill="white", font=proportional(LCD_FONT))
+                #text(draw, (9, 0), make_string_from_list(s8_herrsching_minutes),
+                #     fill="white", font=proportional(LCD_FONT))
+                self.display_minutes(draw, s8_herrsching_minutes, self.s8_herrsching_minutes_cache, 9, 0)
                 for s8_flughafen_minute in s8_flughafen_minutes:
                     text(draw, (9, 8), make_string_from_list(s8_flughafen_minutes),
                         fill="white", font=proportional(LCD_FONT))
-
-    def get_image_as_list(self, path, offset_x, offset_y):
-        display_list = list()
-        with open(path) as picture:
-            line = picture.readline()
-            x = offset_x
-            y = offset_y
-            while line:
-                line = line.strip()
-                for char in line:
-                    if char == "*":
-                        display_list.append(x)
-                        display_list.append(y)
-                    x += 1
-                line = picture.readline()
-                x = offset_x
-                y += 1
-        return display_list
 
     def write_first_line(self, data):
         with canvas(self.device) as draw:

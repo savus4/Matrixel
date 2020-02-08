@@ -1,3 +1,11 @@
+from luma.core.interface.serial import spi, noop
+from luma.core.render import canvas
+from luma.core.virtual import viewport
+from luma.led_matrix.device import max7219
+from luma.core.legacy import text, show_message
+from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
+
+
 def make_string_from_list(liste):
     res = ""
     for elem in liste:
@@ -32,3 +40,23 @@ def get_width_for_multiple_comma_separated_numbers(numbers):
 
 #numbers = [45, 30, 31]
 #get_width_for_multiple_comma_separated_numbers(numbers)
+
+def get_image_as_list(path, offset_x, offset_y):
+        display_list = list()
+        with open(path) as picture:
+            line = picture.readline()
+            x = offset_x
+            y = offset_y
+            while line:
+                line = line.strip()
+                for char in line:
+                    if char == "*":
+                        display_list.append(x)
+                        display_list.append(y)
+                    x += 1
+                line = picture.readline()
+                x = offset_x
+                y += 1
+        return display_list
+
+
