@@ -73,29 +73,42 @@ class DisplayDriver():
                 
     def s_bahn_layout(self, s8_flughafen_minutes, s8_herrsching_minutes):
         self.set_brightness()
-        print(str(s8_flughafen_minutes))
-        if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
-                s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
-            if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
-                (self.s8_flughafen_minutes_cache[0]["minutes"] < s8_flughafen_minutes[0]["minutes"] and 
-                self.s8_flughafen_minutes_cache[0]["minutes"] < 2 and
-                s8_flughafen_minutes[0]["minutes"] < 5)):
-                animate_flughafen = True
-            else:
-                animate_flughafen = False
-            self.s8_flughafen_minutes_cache = s8_flughafen_minutes
-            self.s8_herrsching_minutes_cache = s8_herrsching_minutes
+        #print(str(s8_flughafen_minutes))
+        if not (self.check_as_usual(s8_flughafen_minutes) and self.check_as_usual(s8_herrsching_minutes)):
+            if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
+                    s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
+                if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
+                    (self.s8_flughafen_minutes_cache[0]["minutes"] < s8_flughafen_minutes[0]["minutes"] and 
+                    self.s8_flughafen_minutes_cache[0]["minutes"] < 2 and
+                    s8_flughafen_minutes[0]["minutes"] < 5)):
+                    animate_flughafen = True
+                else:
+                    animate_flughafen = False
+                self.s8_flughafen_minutes_cache = s8_flughafen_minutes
+                self.s8_herrsching_minutes_cache = s8_herrsching_minutes
+                with canvas(self.device) as draw:
+                    draw.point(get_image_as_list(
+                        "icons/city.txt", 0, 0), fill="white")
+                    draw.point(get_image_as_list(
+                        "icons/airplane.txt", 0, 8), fill="white")
+                    #text(draw, (9, 0), make_string_from_list(s8_herrsching_minutes),
+                    #     fill="white", font=proportional(LCD_FONT))
+                    self.display_minutes(draw, s8_herrsching_minutes, self.s8_herrsching_minutes_cache, 9, 0)
+                    for s8_flughafen_minute in s8_flughafen_minutes:
+                        text(draw, (9, 8), make_string_from_list(s8_flughafen_minutes),
+                            fill="white", font=proportional(LCD_FONT))
+        else:
             with canvas(self.device) as draw:
-                draw.point(get_image_as_list(
-                    "icons/city.txt", 0, 0), fill="white")
-                draw.point(get_image_as_list(
-                    "icons/airplane.txt", 0, 8), fill="white")
-                #text(draw, (9, 0), make_string_from_list(s8_herrsching_minutes),
-                #     fill="white", font=proportional(LCD_FONT))
-                self.display_minutes(draw, s8_herrsching_minutes, self.s8_herrsching_minutes_cache, 9, 0)
-                for s8_flughafen_minute in s8_flughafen_minutes:
-                    text(draw, (9, 8), make_string_from_list(s8_flughafen_minutes),
-                        fill="white", font=proportional(LCD_FONT))
+                text(draw, (20, 4), datetime.datetime.now().strftime("%H:%M"),
+                    fill="white", font=proportional(LCD_FONT))
+
+    def check_as_usual(self, departures):
+        as_usual = True
+        for departure in departures:
+            print(str(departure))
+            if not departure["as_usual"]:
+                as_usual = False
+        return as_usual
 
     def write_first_line(self, data):
         with canvas(self.device) as draw:

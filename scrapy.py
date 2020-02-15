@@ -20,6 +20,7 @@ from luma.core.legacy import text, show_message
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
 
 
+
 logging.basicConfig(level=logging.DEBUG)
 
 show_next_connections = 5
@@ -29,18 +30,14 @@ s8_into_city_warning = ["Ostbahnhof", "Leuchtenbergring", "Rosenheimer", "Isarto
 s8_to_airport = ["Flughafen", "Ismaning", "Unterföhring"]
 s8_to_airport_warning = ["Unterföhring"]
 
-def fetch_mvg_data(url, file, lock, search_for, next_connections, period):
-    while True:
-        logging.debug("Fetched data at " +
-                    str(dt.datetime.now().strftime("%H:%M:%S")) + "!")
-        try:
-            resp: requests.Response = requests.get(url, timeout=10)
-            respObj = json.loads(resp.content)
-            current_line = get_minutes(cur_search, next_connections, respObj)
-            lock.acquire()
-            pickle.dump(current_line, open(file, "w+b"))
-            lock.release()
-        time.sleep(period)
+def fetch_data(url, file, lock):
+    logging.debug("Fetched data at " +
+                  str(dt.datetime.now().strftime("%H:%M:%S")) + "!")
+    resp: requests.Response = requests.get(url)
+    respObj = json.loads(resp.content)
+    lock.acquire()
+    pickle.dump(respObj, open(file, "w+b"))
+    lock.release()
 
 def start_up(url, file, lock):
     global run_loading_screen
@@ -110,6 +107,7 @@ def load_data(api_file, lock):
 
 def get_minutes(search_for, amount, api_data):
     min_list = list()
+    now = dt.datetime.now()
     for departure in api_data["departures"]:
         abfahrt_dict = dict()
         if amount == 0:
@@ -128,9 +126,10 @@ def get_minutes(search_for, amount, api_data):
                     live = False
                 sev: bool = departure["sev"]
                 if not cancelled:
-                    abfahrt_dict["time"] = dt.datetime.fromtimestamp(departure["departureTime"]/1000)
+                    abfahrt_dict["time"] = dt.datetime.fromtimestamp(departure["departureTime"]/1000) + dt.timedelta(minutes = delay)
+                    abfahrt_dict["as_usual"] = check_as_usual(abfahrt_dict["time"], abfahrt_dict["destination"])
                     seconds = floor((dt.datetime.fromtimestamp(floor(
-                        departure["departureTime"]/1000)) - dt.datetime.now()).total_seconds()) + (delay * 60)
+                        departure["departureTime"]/1000)) - now).total_seconds()) + (delay * 60)
                     if seconds > 0:
                         minutes = floor(seconds / 60)
                         secondsUnderSixty: str = seconds
@@ -145,6 +144,10 @@ def get_minutes(search_for, amount, api_data):
                     if sev:
                         destination += " SEV"
                 else:
+                    abfahrt_dict["time"] = "X"
+                    abfahrt_dict["minutes"] = "X"
+                    abfahrt_dict["as_usual"] = False
+                    min_list.append(abfahrt_dict)
                     departureTimeDisplay = "X"
                 if live:
                     delay = str(delay) + "m"
@@ -152,7 +155,38 @@ def get_minutes(search_for, amount, api_data):
                     delay = "Not Live"
                 amount -= 1
     return min_list
+
+def check_as_usual(time, direction):
+    as_usual = False
+    next_possible_departures = get_next_exptected_s8_times(direction)
+    for next_possible_departure in next_possible_departures:
         
+        if time - next_possible_departure < dt.timedelta(minutes = 1):
+            print(str(time) + " Possible: " + str(next_possible_departure) + "; Difference: " + str(time-next_possible_departure))
+            as_usual = True
+    return as_usual
+
+def get_next_exptected_s8_times(direction):
+    now = dt.datetime.now()
+    #print("Now: " + str(now))
+    if now.hour == 23:
+        add_delta = -23
+        today = dt.date(now.year, now.month, now.day+1)
+    else:
+        add_delta = 1
+        today = dt.date.today()
+    for cur_end_station in s8_into_city:
+        if direction.find(cur_end_station) != -1:
+            #print("dir: " + direction + " cur end station: " + cur_end_station)
+            next_possible_departures = [dt.datetime.combine(today, dt.time(now.hour, 9)), dt.datetime.combine(today, dt.time(now.hour, 29)), dt.datetime.combine(today, dt.time(now.hour, 47)),
+                                        dt.datetime.combine(today, dt.time(now.hour+add_delta, 9)), dt.datetime.combine(today, dt.time(now.hour+add_delta, 29)), dt.datetime.combine(today, dt.time(now.hour+add_delta, 49))]
+    for cur_end_station in s8_to_airport:
+        if direction.find(cur_end_station) != -1:
+            #print("dir: " + direction + " cur end station: " + cur_end_station)
+            next_possible_departures = [dt.datetime.combine(today, dt.time(now.hour, 11)), dt.datetime.combine(today, dt.time(now.hour, 31)), dt.datetime.combine(today, dt.time(now.hour, 51)),
+                                        dt.datetime.combine(today, dt.time(now.hour+add_delta, 11)), dt.datetime.combine(today, dt.time(now.hour+add_delta, 31)), dt.datetime.combine(today, dt.time(now.hour+add_delta, 51))]
+  
+    return next_possible_departures
 
 def process_data(api_data):
     destination = api_data["destination"]
