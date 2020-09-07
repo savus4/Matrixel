@@ -1,6 +1,8 @@
 # Custom
 data/
 nohup.out
+autostart.out
+message.txt
 
 # VS Code
 .vscode/*

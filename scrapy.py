@@ -3,7 +3,7 @@ import threading
 import sched
 import json
 import datetime as dt
-from tabulate import tabulate
+#from tabulate import tabulate
 from math import floor
 import pickle
 import time
@@ -24,7 +24,7 @@ from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_
 logging.basicConfig(level=logging.DEBUG)
 
 show_next_connections = 5
-data_folder = "data/"
+data_folder = "/home/pi/Documents/mvg_departure_monitor/data/"
 s8_into_city = ["Herrsching", "Weßling", "Gilching-Argelsried", "Pasing", "Ostbahnhof", "Leuchtenbergring"]
 s8_into_city_warning = ["Ostbahnhof", "Leuchtenbergring", "Rosenheimer", "Isartor"]
 s8_to_airport = ["Flughafen", "Ismaning", "Unterföhring"]
@@ -38,6 +38,12 @@ def fetch_data(url, file, lock):
     lock.acquire()
     pickle.dump(respObj, open(file, "w+b"))
     lock.release()
+
+def get_message():
+    message_file = "data/message.txt"
+    if os.path.exists(message_file):
+        with open("data/message.txt") as message:
+            return message.read()
 
 def start_up(url, file, lock):
     global run_loading_screen
@@ -66,11 +72,11 @@ def loading_screen():
         with canvas(device) as draw:
             loading_screen_width = 39
             draw.point(get_image_as_list(
-                "icons/loading.txt", x, 8), fill="white")
+                "/home/pi/Documents/mvg_departure_monitor/icons/loading.txt", x, 8), fill="white")
             draw.point(get_image_as_list(
-                "icons/loading.txt", x+loading_screen_width, 8), fill="white")
+                "/home/pi/Documents/mvg_departure_monitor/icons/loading.txt", x+loading_screen_width, 8), fill="white")
             draw.point(get_image_as_list(
-                "icons/loading.txt", x+(loading_screen_width*2), 8), fill="white")
+                "/home/pi/Documents/mvg_departure_monitor/icons/loading.txt", x+(loading_screen_width*2), 8), fill="white")
             x -= 1
             if x == -loading_screen_width:
                 x = 0
@@ -121,6 +127,7 @@ def get_minutes(search_for, amount, api_data):
                 live = True
                 if delayKey in departure.keys():
                     delay = departure["delay"]
+                    abfahrt_dict["delay"] = departure["delay"]
                 else:
                     delay = 0
                     live = False
@@ -160,14 +167,16 @@ def check_as_usual(time, direction):
     as_usual = False
     next_possible_departures = get_next_exptected_s8_times(direction)
     for next_possible_departure in next_possible_departures:
-        
-        if time - next_possible_departure < dt.timedelta(minutes = 1):
-            print(str(time) + " Possible: " + str(next_possible_departure) + "; Difference: " + str(time-next_possible_departure))
+        #print(str(time) + " Possible: " + str(next_possible_departure) + "; Difference: " + str((next_possible_departure - time).total_seconds()))
+        if (time - next_possible_departure).total_seconds() <= 100 and (time - next_possible_departure).total_seconds() >= 0:
             as_usual = True
+            #print(str(time) + " Possible: " + str(next_possible_departure) + "; Difference: " + str((time - next_possible_departure).total_seconds()))
+
     return as_usual
 
 def get_next_exptected_s8_times(direction):
     now = dt.datetime.now()
+    next_possible_departures = list()
     #print("Now: " + str(now))
     if now.hour == 23:
         add_delta = -23
@@ -177,15 +186,41 @@ def get_next_exptected_s8_times(direction):
         today = dt.date.today()
     for cur_end_station in s8_into_city:
         if direction.find(cur_end_station) != -1:
-            #print("dir: " + direction + " cur end station: " + cur_end_station)
-            next_possible_departures = [dt.datetime.combine(today, dt.time(now.hour, 9)), dt.datetime.combine(today, dt.time(now.hour, 29)), dt.datetime.combine(today, dt.time(now.hour, 47)),
+            next_possible_departures = [dt.datetime.combine(today, dt.time(now.hour, 9)), dt.datetime.combine(today, dt.time(now.hour, 29)), dt.datetime.combine(today, dt.time(now.hour, 49)),
                                         dt.datetime.combine(today, dt.time(now.hour+add_delta, 9)), dt.datetime.combine(today, dt.time(now.hour+add_delta, 29)), dt.datetime.combine(today, dt.time(now.hour+add_delta, 49))]
+  
+            if (now.minute > 49 and now.minute <= 59) or (now.minute >= 0 and now.minute <= 9):
+                next_possible_departures = next_possible_departures[3:]
+                #next_possible_departures.append(dt.datetime.combine(today, dt.time(now.hour+1, 9)))
+            if now.minute >= 0 and now.minute <= 9:
+                pass
+                #next_possible_departures.append(dt.datetime.combine(today, dt.time(now.hour, 9)))
+            if now.minute > 9 and now.minute <= 29:
+                next_possible_departures = next_possible_departures[1:4]
+
+                #next_possible_departures.append(dt.datetime.combine(today, dt.time(now.hour, 29)))
+            if now.minute > 29 and now.minute <= 49:
+                next_possible_departures = next_possible_departures[2:5]
+
+                #next_possible_departures.append(dt.datetime.combine(today, dt.time(now.hour, 49)))
+                
+
+            #print("dir: " + direction + " cur end station: " + cur_end_station)
     for cur_end_station in s8_to_airport:
         if direction.find(cur_end_station) != -1:
             #print("dir: " + direction + " cur end station: " + cur_end_station)
             next_possible_departures = [dt.datetime.combine(today, dt.time(now.hour, 11)), dt.datetime.combine(today, dt.time(now.hour, 31)), dt.datetime.combine(today, dt.time(now.hour, 51)),
                                         dt.datetime.combine(today, dt.time(now.hour+add_delta, 11)), dt.datetime.combine(today, dt.time(now.hour+add_delta, 31)), dt.datetime.combine(today, dt.time(now.hour+add_delta, 51))]
   
+            if (now.minute > 51 and now.minute <= 59) or (now.minute >= 0 and now.minute <= 11):
+                next_possible_departures = next_possible_departures[3:]
+
+            if now.minute > 11 and now.minute <= 31:
+                next_possible_departures = next_possible_departures[1:4]
+
+            if now.minute > 31 and now.minute <= 51:
+                next_possible_departures = next_possible_departures[2:5]
+    #print(str(next_possible_departures))
     return next_possible_departures
 
 def process_data(api_data):
@@ -234,7 +269,7 @@ def main():
     lock = threading.Lock()
     content = list()
     start_up(mvg_api, api_file, lock)
-    #first_fetch_data(mvg_api, api_file, lock, display)
+    message = ""
     respObj = pickle.load(open(api_file, "rb"))
     i = 0
     refresh_counter = 0
@@ -246,6 +281,11 @@ def main():
         if refresh_counter >= 45:
             start_data_fetch_thread(mvg_api, api_file, lock)
             refresh_counter = 0
+
+        new_message = get_message()
+        if new_message != None:
+            message = new_message
+
         refresh_counter += 1
         min_list_flughafen_s_bahn = get_minutes(s8_to_airport, 3, respObj)
         min_list_city_s_bahn = get_minutes(s8_into_city, 3, respObj)
@@ -258,9 +298,9 @@ def main():
         i = 0
 
         header = ["Richtung", "Minuten", "Verspätung"]
-        print(tabulate(content, headers=header))
-        print("")
-        display.s_bahn_layout(min_list_flughafen_s_bahn, min_list_city_s_bahn)
+        #print(tabulate(content, headers=header))
+        #print("")
+        display.s_bahn_layout(min_list_flughafen_s_bahn, min_list_city_s_bahn, message)
  
         content = list()
         time.sleep(1)

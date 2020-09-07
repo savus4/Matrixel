@@ -4,7 +4,11 @@ from luma.core.virtual import viewport
 from luma.led_matrix.device import max7219
 from luma.core.legacy import text, show_message
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
+import os
 
+def create_folder(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 def make_string_from_list(liste):
     res = ""
@@ -16,7 +20,10 @@ def get_digits(number):
     number: str = str(number)
     digit_list = list()
     for digit in number:
-        digit_list.append(int(digit))
+        if digit != "X":
+            digit_list.append(int(digit))
+        else:
+            digit_list.append(digit)
     return digit_list
 
 def get_width(number):
@@ -24,7 +31,7 @@ def get_width(number):
         number = get_digits(number)
     width = 0
     for digit in number:
-        if (digit > 1 or digit == 0):
+        if (digit > 1 or digit == 0) or digit == "X":
             width += 5
         else:
             width += 3

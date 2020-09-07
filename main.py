@@ -1,4 +1,7 @@
 import scrapy
+import helper
+from pathlib import Path
+import threading
 
 daglfing_sbahn_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700"
 
@@ -11,9 +14,10 @@ next_connections = 3
 period = 45 # Data fetch period in seconds
 
 def main():
-    create_folder(data_folder)
+    data_folder = Path("data")
+    helper.create_folder(data_folder)
     lock = threading.Lock()
-    start_up(mvg_api, api_file, lock)
+    scrapy.start_up(mvg_api, api_file, lock)
     # Start Fetch Thread for S8 downtown from Daglfing
     daglfing_sbahn_into_city_file = os.path.join(data_folder, "daglfing_sbahn_into_city.p")
     daglfing_sbahn_into_city_thread = threading.Thread(target=scrapy.fetch_mvg_data, 
