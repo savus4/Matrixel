@@ -10,7 +10,8 @@ from PIL import Image
 import re
 import time
 from helper import make_string_from_list, get_width, get_image_as_list
-import datetime
+from datetime import datetime
+from datetime import time as dtTime
 
 
 class DisplayDriver():
@@ -25,7 +26,7 @@ class DisplayDriver():
         self.device = max7219(self.serial, block_orientation=block_orientation,
                               rotate=rotate or 0, blocks_arranged_in_reverse_order=inreverse,
                               width=width, height=height)
-        self.device.contrast(0x10)
+        self.device.contrast(0x0)
         self.s8_flughafen_minutes_cache = list()
         self.s8_herrsching_minutes_cache = list()
         self.minute_cache = 0
@@ -33,15 +34,12 @@ class DisplayDriver():
 
 
     def set_brightness(self):
-        start = datetime.time(21, 00) 
-        end = datetime.time(6, 30)
-        timestamp = datetime.datetime.now().time()
-        if timestamp < end and timestamp > start: # TODO: Automatic switching doesnt work
-            #print("dark")
-            self.device.contrast(0x0)
-        else:
-            #print("bright")
+        now_time = datetime.utcnow().time()
+        if now_time >= dtTime(17, 30) or now_time <= dtTime(6, 30):
             self.device.contrast(0xF0)
+        else:
+            self.device.contrast(0x50)
+
 
     def display_minutes(self, draw, minutes, cache, x, y):
         animate = False
@@ -76,7 +74,7 @@ class DisplayDriver():
     def s_bahn_layout(self, s8_flughafen_minutes, s8_herrsching_minutes, message):
         self.set_brightness()
         #print(str(s8_flughafen_minutes))
-        if False and (not self.check_as_usual(s8_flughafen_minutes) or not self.check_as_usual(s8_herrsching_minutes)):
+        if (not self.check_as_usual(s8_flughafen_minutes) or not self.check_as_usual(s8_herrsching_minutes)):
             if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
                     s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
                 if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
@@ -89,6 +87,8 @@ class DisplayDriver():
                 self.s8_flughafen_minutes_cache = s8_flughafen_minutes
                 self.s8_herrsching_minutes_cache = s8_herrsching_minutes
                 with canvas(self.device) as draw:
+                    #draw_city_line()
+                    #draw_airport_line()
                     draw.point(get_image_as_list(
                         "/home/pi/Documents/mvg_departure_monitor/icons/frauenkirche.txt", 0, 0), fill="white")
                     draw.point(get_image_as_list(
@@ -97,7 +97,7 @@ class DisplayDriver():
                     self.display_minutes(draw, s8_flughafen_minutes, self.s8_flughafen_minutes_cache, 9, 9)
         elif len(message.strip()) != 0:
             with canvas(self.device) as draw:
-                text(draw, (16, 0), datetime.datetime.now().strftime("%H:%M"),
+                text(draw, (16, 0), datetime.now().strftime("%H:%M"),
                     fill="white", font=proportional(CP437_FONT))
                 try:
                     text(draw, (0, 9), message[:-1],
@@ -106,15 +106,17 @@ class DisplayDriver():
                     pass
         else:
             with canvas(self.device) as draw:
-                text(draw, (16, 4), datetime.datetime.now().strftime("%H:%M"),
+                text(draw, (16, 4), datetime.now().strftime("%H:%M"),
                     fill="white", font=proportional(CP437_FONT))
 
     def check_as_usual(self, departures):
         as_usual = True
+        i = 0
         for departure in departures:
             #print(str(departure))
-            if not departure["as_usual"]:
+            if i < 3 and not departure["as_usual"]:
                 as_usual = False
+            i = i + 1
         return as_usual
 
     def write_first_line(self, data):

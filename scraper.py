@@ -13,7 +13,7 @@ class Scraper:
     data_folder = "/home/pi/Documents/mvg_departure_monitor/data/"
     s8_into_city_stations = ["Herrsching", "Weßling", "Gilching-Argelsried", "Pasing", "Ostbahnhof", "Leuchtenbergring"]
     s8_into_city_warning = ["Ostbahnhof", "Leuchtenbergring", "Rosenheimer", "Isartor"]
-    s8_to_airport_stations = ["Flughafen", "Ismaning", "Unterföhring"]
+    s8_to_airport_stations = ["Flughafen", "Ismaning", "Unterföhring", "Johanneskirchen"]
     s8_to_airport_warning = ["Unterföhring"]
     
     daglfing_sbahn_api = "https://www.mvg.de/api/fahrinfo/departure/de:09162:700"
@@ -25,12 +25,13 @@ class Scraper:
 
     raw_api_data = dict()
 
-    def get_data(self, period):
+    def get_data(self, period, new_data_callback):
         while True:
             self.fetch_data()
             self.s8_city_min_list = self.get_minutes(self.s8_into_city_stations)
             self.s8_airport_min_list = self.get_minutes(self.s8_to_airport_stations)
             self.last_refresh = dt.datetime.now()
+            new_data_callback()
             time.sleep(period)
         #threading.Timer(interval=period, function=self.get_data, args=(self, period))
         
@@ -43,6 +44,7 @@ class Scraper:
             resp: requests.Response = requests.get(self.daglfing_sbahn_api)
             if resp.content == None or len(resp.content) == 0:
                 time.sleep(10)
+                print("Failed to fetch at " + str(dt.datetime.now()))
             else:
                 break
         self.raw_api_data = json.loads(resp.content)
