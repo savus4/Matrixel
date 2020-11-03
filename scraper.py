@@ -75,10 +75,6 @@ class Scraper:
                             departure["departureTime"]/1000)) - now).total_seconds()) + (delay * 60)
                         if seconds > 0:
                             minutes = floor(seconds / 60)
-                            secondsUnderSixty: str = seconds
-                            while seconds >= 60:
-                                seconds -= 60
-                                secondsUnderSixty = seconds
                         else:
                             minutes = 0
                             departureTimeDisplay = "Jetzt"

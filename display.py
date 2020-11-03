@@ -87,14 +87,8 @@ class DisplayDriver():
                 self.s8_flughafen_minutes_cache = s8_flughafen_minutes
                 self.s8_herrsching_minutes_cache = s8_herrsching_minutes
                 with canvas(self.device) as draw:
-                    #draw_city_line()
-                    #draw_airport_line()
-                    draw.point(get_image_as_list(
-                        "/home/pi/Documents/mvg_departure_monitor/icons/frauenkirche.txt", 0, 0), fill="white")
-                    draw.point(get_image_as_list(
-                        "/home/pi/Documents/mvg_departure_monitor/icons/airplane.txt", 0, 8), fill="white")
-                    self.display_minutes(draw, s8_herrsching_minutes, self.s8_herrsching_minutes_cache, 9, 0)
-                    self.display_minutes(draw, s8_flughafen_minutes, self.s8_flughafen_minutes_cache, 9, 9)
+                    self.draw_city_line(draw, s8_herrsching_minutes)
+                    self.draw_airport_line(draw, s8_flughafen_minutes)
         elif len(message.strip()) != 0:
             with canvas(self.device) as draw:
                 text(draw, (16, 0), datetime.now().strftime("%H:%M"),
@@ -108,6 +102,19 @@ class DisplayDriver():
             with canvas(self.device) as draw:
                 text(draw, (16, 4), datetime.now().strftime("%H:%M"),
                     fill="white", font=proportional(CP437_FONT))
+
+
+    def draw_city_line(self, draw, s8_herrsching_minutes):
+        draw.point(get_image_as_list(
+            "/home/pi/Documents/mvg_departure_monitor/icons/frauenkirche.txt", 0, 0), fill="white")
+        self.display_minutes(draw, s8_herrsching_minutes, self.s8_herrsching_minutes_cache, 9, 0)
+
+
+    def draw_airport_line(self, draw, s8_flughafen_minutes):
+        draw.point(get_image_as_list(
+            "/home/pi/Documents/mvg_departure_monitor/icons/airplane.txt", 0, 8), fill="white")
+        self.display_minutes(draw, s8_flughafen_minutes, self.s8_flughafen_minutes_cache, 9, 9)
+
 
     def check_as_usual(self, departures):
         as_usual = True
