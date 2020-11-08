@@ -3,19 +3,20 @@ from scraper import Scraper
 import time
 from display import DisplayDriver
 
-def got_new_data():
-    print("Last refresh: " + str(scraper.last_refresh))
-    display.s_bahn_layout(scraper.s8_airport_min_list, scraper.s8_city_min_list, "")
+
+def main():
+    # Init display
+    display = DisplayDriver()
+
+    # Get data
+    poll_time = 30 #seconds
+    scraper = Scraper()
+    threading.Thread(target=scraper.get_data, args=[display.s_bahn_layout]).start()
+
+    while(True):
+        display.s_bahn_layout(scraper, "")
+        time.sleep(0.1)
 
 
-# Init display
-display = DisplayDriver()
-
-# Get data
-poll_time = 30 #seconds
-scraper = Scraper()
-threading.Thread(target=scraper.get_data, args=[poll_time, got_new_data]).start()
-
-while(True):
-    display.s_bahn_layout(scraper.s8_airport_min_list, scraper.s8_city_min_list, "")
-    time.sleep(10)
+if __name__ == "__main__":
+    main()

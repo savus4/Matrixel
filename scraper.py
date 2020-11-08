@@ -3,6 +3,7 @@ import logging
 import requests
 import time
 import datetime as dt
+from datetime import time as dtTime
 import json
 from math import floor
 import pprint
@@ -22,32 +23,35 @@ class Scraper:
     s8_airport_min_list = list()
 
     last_refresh = None
+    minutes_since_last_refresh = None
 
     raw_api_data = dict()
 
-    def get_data(self, period, new_data_callback):
+    def get_data(self, refresh_s_bahn_layout):
+        time.sleep(3)
         while True:
             self.fetch_data()
             self.s8_city_min_list = self.get_minutes(self.s8_into_city_stations)
             self.s8_airport_min_list = self.get_minutes(self.s8_to_airport_stations)
-            self.last_refresh = dt.datetime.now()
-            new_data_callback()
-            time.sleep(period)
-        #threading.Timer(interval=period, function=self.get_data, args=(self, period))
+            refresh_s_bahn_layout(self)
+            time.sleep(self.get_adaptive_period())
         
 
     def fetch_data(self):
         resp = None
-        while True:
-            logging.debug("Fetched data at " +
-                        str(dt.datetime.now().strftime("%H:%M:%S")) + "!")       
+        while True: 
             resp: requests.Response = requests.get(self.daglfing_sbahn_api)
-            if resp.content == None or len(resp.content) == 0:
-                time.sleep(10)
+            if resp == None or resp.content == None or len(resp.content) == 0:
                 print("Failed to fetch at " + str(dt.datetime.now()))
+                self.minutes_since_last_refresh = dt.datetime.now() - self.last_refresh
+                time.sleep(10)
             else:
                 break
+        logging.debug("Fetched data at " +
+                        str(dt.datetime.now().strftime("%H:%M:%S")) + "!")    
         self.raw_api_data = json.loads(resp.content)
+        self.last_refresh = dt.datetime.now()
+        self.minutes_since_last_refresh = dt.datetime.now() - self.last_refresh
 
     def get_minutes(self, search_for):
         min_list = list()
@@ -153,6 +157,13 @@ class Scraper:
                     next_possible_departures = next_possible_departures[2:5]
         #print(str(next_possible_departures))
         return next_possible_departures
+
+    def get_adaptive_period(self):
+        now_time = dt.datetime.utcnow().time()
+        if now_time >= dtTime(2, 30) or now_time <= dtTime(5, 10):
+            return 57
+        else:
+            return 29
 
 #scraper = Scraper()
 #scraper.get_data()

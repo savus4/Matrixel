@@ -10,7 +10,7 @@ from PIL import Image
 import re
 import time
 from helper import make_string_from_list, get_width, get_image_as_list
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import time as dtTime
 
 
@@ -31,6 +31,9 @@ class DisplayDriver():
         self.s8_herrsching_minutes_cache = list()
         self.minute_cache = 0
         self.seconds_cache = 0
+        self.number_next_connections = 3
+        self.refresh_counter = 0
+        self.last_refresh_cache = datetime.now()
 
 
     def set_brightness(self):
@@ -70,26 +73,42 @@ class DisplayDriver():
                    x-3, y+5, x-2, y+5, x-3, y+6, x-2, y+6], fill="black")
         text(draw, (x-3, y), "  ",
                     fill="white", font=proportional(LCD_FONT))
-                
-    def s_bahn_layout(self, s8_flughafen_minutes, s8_herrsching_minutes, message):
-        self.set_brightness()
-        #print(str(s8_flughafen_minutes))
-        if (not self.check_as_usual(s8_flughafen_minutes) or not self.check_as_usual(s8_herrsching_minutes)):
-            if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
-                    s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
-                if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
+
+    def get_next_connections_excerpt(self, min_list):
+        if len(min_list) >= self.number_next_connections:
+            return min_list[0:self.number_next_connections]
+        else:
+            return min_list
+
+
+    def check_animation(self, direction):
+        '''
+        Not working yet. Only extracted out of ´s_bahn_layout´ to clear things up.
+        '''
+        if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
                     (self.s8_flughafen_minutes_cache[0]["minutes"] < s8_flughafen_minutes[0]["minutes"] and 
                     self.s8_flughafen_minutes_cache[0]["minutes"] < 2 and
                     s8_flughafen_minutes[0]["minutes"] < 5)):
                     animate_flughafen = True
-                else:
-                    animate_flughafen = False
+        else:
+            animate_flughafen = False
+        return animate_flughafen
+                
+    def s_bahn_layout(self, scraper, message=None):
+        s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
+        s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
+        #print(str(s8_flughafen_minutes))
+        if (not self.check_as_usual(s8_flughafen_minutes) or not self.check_as_usual(s8_herrsching_minutes)):
+            if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
+                    s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
+                self.set_brightness()
                 self.s8_flughafen_minutes_cache = s8_flughafen_minutes
                 self.s8_herrsching_minutes_cache = s8_herrsching_minutes
                 with canvas(self.device) as draw:
                     self.draw_city_line(draw, s8_herrsching_minutes)
                     self.draw_airport_line(draw, s8_flughafen_minutes)
-        elif len(message.strip()) != 0:
+        elif message != None and len(message.strip()) != 0:
+            self.set_brightness()
             with canvas(self.device) as draw:
                 text(draw, (16, 0), datetime.now().strftime("%H:%M"),
                     fill="white", font=proportional(CP437_FONT))
@@ -99,10 +118,45 @@ class DisplayDriver():
                 except IndexError as e:
                     pass
         else:
-            with canvas(self.device) as draw:
-                text(draw, (16, 4), datetime.now().strftime("%H:%M"),
-                    fill="white", font=proportional(CP437_FONT))
+            self.device.contrast(0x0)
+            self.show_idle_state(scraper)
+            
 
+    def show_idle_state(self, scraper):
+        #successfull_refresh = self.check_refresh(scraper.last_refresh)
+        #print("minutes since last refresh: " + str(scraper.minutes_since_last_refresh) + 
+        #      "\nrefresh_counter: " + str(self.refresh_counter))
+        if scraper.minutes_since_last_refresh and scraper.minutes_since_last_refresh < timedelta(minutes=3):
+            self.reset_refresh_counter_at(30*10)
+            if self.refresh_counter == 0:
+                with canvas(self.device) as draw:
+                    draw.point([0, 0], fill="black")
+            elif self.refresh_counter == 6 :
+                with canvas(self.device) as draw:
+                    draw.point([0, 0], fill="white")
+        elif not scraper.minutes_since_last_refresh or scraper.minutes_since_last_refresh > timedelta(minutes=3):
+            self.reset_refresh_counter_at(10)
+            if self.refresh_counter == 0:
+                with canvas(self.device) as draw:
+                    draw.point([0, 0], fill="black")
+            elif self.refresh_counter == 6 :
+                with canvas(self.device) as draw:
+                    draw.point([0, 0], fill="white")
+        else:
+            with canvas(self.device) as draw:
+                draw.point([0, 0], fill="white")
+        self.refresh_counter += 1
+
+    def reset_refresh_counter_at(self, number):
+        if self.refresh_counter >= number:
+            self.refresh_counter = 0
+
+    def check_refresh(self, last_refresh):
+        if not last_refresh:
+            return False
+        refresh_successfull = last_refresh != self.last_refresh_cache
+        self.last_refresh_cache = last_refresh
+        return refresh_successfull
 
     def draw_city_line(self, draw, s8_herrsching_minutes):
         draw.point(get_image_as_list(
@@ -116,12 +170,12 @@ class DisplayDriver():
         self.display_minutes(draw, s8_flughafen_minutes, self.s8_flughafen_minutes_cache, 9, 9)
 
 
-    def check_as_usual(self, departures):
+    def check_as_usual(self, departures, number_departures=3):
         as_usual = True
         i = 0
         for departure in departures:
             #print(str(departure))
-            if i < 3 and not departure["as_usual"]:
+            if i < number_departures and not departure["as_usual"]:
                 as_usual = False
             i = i + 1
         return as_usual
