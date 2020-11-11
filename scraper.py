@@ -27,25 +27,32 @@ class Scraper:
 
     raw_api_data = dict()
 
-    def get_data(self, refresh_s_bahn_layout):
+    def get_data(self, refresh_s_bahn_layout=None):
         while True:
             self.fetch_data()
             self.s8_city_min_list = self.get_minutes(self.s8_into_city_stations)
             self.s8_airport_min_list = self.get_minutes(self.s8_to_airport_stations)
-            refresh_s_bahn_layout(self)
+            if refresh_s_bahn_layout:
+                refresh_s_bahn_layout(self)
             time.sleep(self.get_adaptive_period())
         
 
     def fetch_data(self):
         resp = None
         while True: 
-            resp: requests.Response = requests.get(self.daglfing_sbahn_api)
-            if resp == None or resp.content == None or len(resp.content) == 0:
-                print("Failed to fetch at " + str(dt.datetime.now()))
+            try:
+                resp: requests.Response = requests.get(self.daglfing_sbahn_api)
+                if resp == None or resp.content == None or len(resp.content) == 0:
+                    print("Failed to fetch at " + str(dt.datetime.now()))
+                    self.minutes_since_last_refresh = dt.datetime.now() - self.last_refresh
+                    time.sleep(10)
+                else:
+                    break
+            except requests.exceptions.RequestException as e:
+                print("Failed to fetch at " + str(dt.datetime.now()) + "\n" + 
+                      "Reason: " + str(e))
                 self.minutes_since_last_refresh = dt.datetime.now() - self.last_refresh
                 time.sleep(10)
-            else:
-                break
         logging.debug("Fetched data at " +
                         str(dt.datetime.now().strftime("%H:%M:%S")) + "!")    
         self.raw_api_data = json.loads(resp.content)
@@ -164,6 +171,7 @@ class Scraper:
         else:
             return 29
 
-#scraper = Scraper()
-#scraper.get_data()
-#pprint.pprint(str(scraper.s8_airport_min_list))
+print("test")
+scraper = Scraper()
+scraper.get_data()
+pprint.pprint(str(scraper.s8_airport_min_list))
