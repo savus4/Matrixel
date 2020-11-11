@@ -28,7 +28,6 @@ class Scraper:
     raw_api_data = dict()
 
     def get_data(self, refresh_s_bahn_layout):
-        time.sleep(3)
         while True:
             self.fetch_data()
             self.s8_city_min_list = self.get_minutes(self.s8_into_city_stations)
@@ -160,7 +159,7 @@ class Scraper:
 
     def get_adaptive_period(self):
         now_time = dt.datetime.utcnow().time()
-        if now_time >= dtTime(2, 30) or now_time <= dtTime(5, 10):
+        if now_time >= dtTime(2, 30) and now_time <= dtTime(5, 10):
             return 57
         else:
             return 29

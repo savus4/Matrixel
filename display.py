@@ -41,17 +41,17 @@ class DisplayDriver():
         if now_time >= dtTime(17, 30) or now_time <= dtTime(6, 30):
             self.device.contrast(0xF0)
         else:
-            self.device.contrast(0x50)
+            self.device.contrast(0xF0)
 
 
     def display_minutes(self, draw, minutes, cache, x, y):
         animate = False
-        if not (minutes == cache):
-            if (len(cache) != 0 and len(minutes) != 0 and 
-                (cache[0]["minutes"] < minutes[0]["minutes"] and 
-                cache["minutes"] < 2 and
-                minutes[0]["minutes"] < 5)):
-                animate = True
+        # if not (minutes == cache):
+        #     if (len(cache) != 0 and len(minutes) != 0 and 
+        #         (cache[0]["minutes"] < minutes[0]["minutes"] and 
+        #         cache["minutes"] < 2 and
+        #         minutes[0]["minutes"] < 5)):
+        #         animate = True
 
         soonest_bahn = True
         for departure in minutes:
@@ -95,13 +95,13 @@ class DisplayDriver():
         return animate_flughafen
                 
     def s_bahn_layout(self, scraper, message=None):
-        s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
-        s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
-        #print(str(s8_flughafen_minutes))
-        if (not self.check_as_usual(s8_flughafen_minutes) or not self.check_as_usual(s8_herrsching_minutes)):
+        s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
+        s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
+        if not self.check_as_usual([s8_flughafen_minutes, s8_herrsching_minutes]):
             if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
                     s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
                 self.set_brightness()
+                self.refresh_counter = 0
                 self.s8_flughafen_minutes_cache = s8_flughafen_minutes
                 self.s8_herrsching_minutes_cache = s8_herrsching_minutes
                 with canvas(self.device) as draw:
@@ -109,6 +109,7 @@ class DisplayDriver():
                     self.draw_airport_line(draw, s8_flughafen_minutes)
         elif message != None and len(message.strip()) != 0:
             self.set_brightness()
+            self.refresh_counter = 0
             with canvas(self.device) as draw:
                 text(draw, (16, 0), datetime.now().strftime("%H:%M"),
                     fill="white", font=proportional(CP437_FONT))
@@ -124,9 +125,13 @@ class DisplayDriver():
 
     def show_idle_state(self, scraper):
         #successfull_refresh = self.check_refresh(scraper.last_refresh)
-        #print("minutes since last refresh: " + str(scraper.minutes_since_last_refresh) + 
-        #      "\nrefresh_counter: " + str(self.refresh_counter))
-        if scraper.minutes_since_last_refresh and scraper.minutes_since_last_refresh < timedelta(minutes=3):
+        minutes_since_last_refresh = None
+        if scraper.last_refresh:
+            minutes_since_last_refresh = datetime.now() - scraper.last_refresh
+        #if minutes_since_last_refresh:
+        #   print("minutes since last refresh: " + str(minutes_since_last_refresh) + 
+        #       "\nrefresh_counter: " + str(self.refresh_counter))
+        if minutes_since_last_refresh and minutes_since_last_refresh < timedelta(minutes=3):
             self.reset_refresh_counter_at(30*10)
             if self.refresh_counter == 0:
                 with canvas(self.device) as draw:
@@ -134,7 +139,7 @@ class DisplayDriver():
             elif self.refresh_counter == 6 :
                 with canvas(self.device) as draw:
                     draw.point([0, 0], fill="white")
-        elif not scraper.minutes_since_last_refresh or scraper.minutes_since_last_refresh > timedelta(minutes=3):
+        elif not minutes_since_last_refresh or minutes_since_last_refresh > timedelta(minutes=3):
             self.reset_refresh_counter_at(10)
             if self.refresh_counter == 0:
                 with canvas(self.device) as draw:
@@ -170,14 +175,14 @@ class DisplayDriver():
         self.display_minutes(draw, s8_flughafen_minutes, self.s8_flughafen_minutes_cache, 9, 9)
 
 
-    def check_as_usual(self, departures, number_departures=3):
+    def check_as_usual(self, lines, number_departures=3):
         as_usual = True
-        i = 0
-        for departure in departures:
-            #print(str(departure))
-            if i < number_departures and not departure["as_usual"]:
-                as_usual = False
-            i = i + 1
+        for departures in lines:
+            i = 0
+            for departure in departures:     
+                if i < number_departures and not departure["as_usual"]:
+                    as_usual = False
+                i = i + 1
         return as_usual
 
     def write_first_line(self, data):
