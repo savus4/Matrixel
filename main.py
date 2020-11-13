@@ -2,6 +2,7 @@ import threading
 from scraper import Scraper
 import time
 from display import DisplayDriver
+import server
 
 
 def main():
@@ -12,6 +13,11 @@ def main():
     poll_time = 30 #seconds
     scraper = Scraper()
     threading.Thread(target=scraper.get_data, args=[display.s_bahn_layout]).start()
+
+    # Local server for short messages
+    #threading.Thread(target=server.run, args=[4567]).start()
+    #message = ""
+    #server.run()
 
     while(True):
         display.s_bahn_layout(scraper, "")

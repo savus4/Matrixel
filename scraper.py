@@ -171,7 +171,7 @@ class Scraper:
         else:
             return 29
 
-print("test")
-scraper = Scraper()
-scraper.get_data()
-pprint.pprint(str(scraper.s8_airport_min_list))
+#print("test")
+#scraper = Scraper()
+#scraper.get_data()
+#pprint.pprint(str(scraper.s8_airport_min_list))
