@@ -31,7 +31,8 @@ def get_width(number):
         number = get_digits(number)
     width = 0
     for digit in number:
-        if (digit > 1 or digit == 0) or digit == "X":
+        #print("digit: " + str(digit))
+        if digit == "X" or (digit > 1 or digit == 0):
             width += 5
         else:
             width += 3

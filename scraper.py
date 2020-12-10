@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import threading
 import logging
 import requests
@@ -34,6 +36,7 @@ class Scraper:
             self.s8_airport_min_list = self.get_minutes(self.s8_to_airport_stations)
             if refresh_s_bahn_layout:
                 refresh_s_bahn_layout(self)
+            #print(str(self.s8_city_min_list))
             time.sleep(self.get_adaptive_period())
         
 

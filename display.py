@@ -1,5 +1,5 @@
 import time
-
+import os
 from luma.core.interface.serial import spi, noop
 from luma.core.render import canvas
 from luma.core.virtual import viewport
@@ -16,7 +16,7 @@ from datetime import time as dtTime
 
 class DisplayDriver():
 
-    def __init__(self):
+    def __init__(self, startup_screen=True):
         block_orientation = -90
         rotate = 0
         inreverse = False
@@ -26,7 +26,9 @@ class DisplayDriver():
         self.device = max7219(self.serial, block_orientation=block_orientation,
                               rotate=rotate or 0, blocks_arranged_in_reverse_order=inreverse,
                               width=width, height=height)
-        self.device.contrast(0x0)
+        self.device.contrast(0xFF)
+        if startup_screen:
+            self.start_up_screen()
         self.s8_flughafen_minutes_cache = list()
         self.s8_herrsching_minutes_cache = list()
         self.minute_cache = 0
@@ -34,14 +36,23 @@ class DisplayDriver():
         self.number_next_connections = 3
         self.refresh_counter = 0
         self.last_refresh_cache = datetime.now()
+        self.is_sleeping = False
+        self.sleep_wait_counter = 0
+        self.sleeping_file = "sleeping.txt"
 
 
     def set_brightness(self):
         now_time = datetime.utcnow().time()
         if now_time >= dtTime(17, 30) or now_time <= dtTime(6, 30):
-            self.device.contrast(0xF0)
+            self.device.contrast(0xFF)
         else:
-            self.device.contrast(0xF0)
+            self.device.contrast(0xFF)
+
+    def start_up_screen(self, display_time=2):
+        with canvas(self.device) as draw:
+                text(draw, (0, 4), "Dagl-Info",
+                    fill="white", font=proportional(CP437_FONT))
+        time.sleep(display_time)
 
 
     def display_minutes(self, draw, minutes, cache, x, y):
@@ -93,8 +104,51 @@ class DisplayDriver():
         else:
             animate_flughafen = False
         return animate_flughafen
+
+    def in_sleep_mode(self):
+        # auto wake up in the morning
+        now_time = datetime.now().time()
+        if now_time >= dtTime(5, 50, 0) and now_time <= dtTime(5, 50, 3):
+            print("must wake up")
+            self.wake_up()
+            return False
+        # don't check file too often
+        if self.sleep_wait_counter < 10:
+            self.sleep_wait_counter += 1
+            return self.is_sleeping
+        else:
+            self.sleep_wait_counter = 0
+        # check if file exists
+        if os.path.exists(self.sleeping_file) and os.path.isfile(self.sleeping_file):
+            return True
+        # wake up if sleeping at the moment
+        elif self.is_sleeping:
+            self.wake_up()
+            return False
+
+    def wake_up(self):
+        if os.path.exists(self.sleeping_file) and os.path.isfile(self.sleeping_file):
+            os.remove(self.sleeping_file)
+        self.s8_flughafen_minutes_cache = None
+        self.s8_herrsching_minutes_cache = None
+        self.is_sleeping = False
                 
+    def sleep_screen(self):
+        if not self.is_sleeping:
+            self.device.contrast(0xFF)
+            sleep_file = "/home/pi/Documents/mvg_departure_monitor/icons/moon.txt"
+            with canvas(self.device) as draw:
+                if os.path.exists(sleep_file) and os.path.isfile(sleep_file):
+                    draw.point(get_image_as_list(
+                               "/home/pi/Documents/mvg_departure_monitor/icons/moon.txt", 55, 2), fill="white")
+                else:
+                    draw.point([63, 0], fill="white")
+            self.is_sleeping = True
+
     def s_bahn_layout(self, scraper, message=None):
+        if self.in_sleep_mode():
+            self.sleep_screen()
+            return
         s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
         s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
         if not self.check_as_usual([s8_flughafen_minutes, s8_herrsching_minutes]):
@@ -110,6 +164,7 @@ class DisplayDriver():
         elif message != None and len(message.strip()) != 0:
             self.set_brightness()
             self.refresh_counter = 0
+            self.message_counter += 1
             with canvas(self.device) as draw:
                 text(draw, (16, 0), datetime.now().strftime("%H:%M"),
                     fill="white", font=proportional(CP437_FONT))
@@ -119,7 +174,7 @@ class DisplayDriver():
                 except IndexError as e:
                     pass
         else:
-            self.device.contrast(0x0)
+            self.device.contrast(0xFF)
             self.show_idle_state(scraper)
             
 
