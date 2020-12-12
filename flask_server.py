@@ -57,7 +57,7 @@ def start():
         return render_template("EnterName.html")
     elif request.method == "POST" and request.form["submitButton"] == "NewMessage" and request.form["message"]:
         print("New Message entered")
-        #global messages_manager
+        global messages_manager
         messages_manager.new_message(DisplayMessage(session["username"], request.form["message"]))
         return redirect(url_for('message_sent'))
     elif request.method == 'POST' and request.form["submitButton"] == "logout":

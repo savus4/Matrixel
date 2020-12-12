@@ -1,4 +1,5 @@
 from datetime import datetime
+from pprint import pprint
 
 class Messages_Manager():
     def __init__(self):
@@ -6,6 +7,9 @@ class Messages_Manager():
 
     def new_message(self, message):
         self.messages.append(message)
+        print("ALL MESSAGES:")
+        for msg in self.messages:
+            pprint(str(msg))
 
     def get_last_message(self):
         return self.messages[-1]
@@ -36,7 +40,7 @@ class Messages_Manager():
 class DisplayMessage():
 
     def __init__(self, username, message):
-        print("Creating new Message", file=sys.stderr)
+        print("Creating new Message")
         self.message = message
         self.username = username
         self.creation_timestamp = datetime.now()
@@ -44,4 +48,4 @@ class DisplayMessage():
 
 
     def __str__(self) -> str:
-        return self.message
+        return "From: " + self.username + ": " + self.message
