@@ -23,11 +23,12 @@ def debug_display_sleep_callback():
     else:
         return "awaking"
 
-messages_manager = Messages_Manager(msg_callback)
+messages_manager = Messages_Manager()
 display_sleep_callback = debug_display_sleep_callback
 
 @app.route("/togglesleep")
 def toggle_sleep():
+    global display_sleep_callback
     return display_sleep_callback()
  
 
@@ -82,9 +83,10 @@ if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0")
     
 
-def start_server(sleeping_callback, msg_callback):
+def start_server(sleeping_callback, msg_manager):
+    print("Web-Server is starting...")
     global messages_manager
-    messages_manager = Messages_Manager(msg_callback)
-    global display_sleeping
-    display_sleeping = sleeping_callback
-    app.run(debug=True, host="0.0.0.0")
+    messages_manager = msg_manager
+    global display_sleep_callback
+    display_sleep_callback = sleeping_callback
+    app.run(host="0.0.0.0")

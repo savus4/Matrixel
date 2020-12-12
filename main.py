@@ -2,29 +2,29 @@ import threading
 from scraper import Scraper
 import time
 from display import DisplayDriver
-import server
-from dagl_msg import Dagl_Message
+#import server
+from Messages_Manager import Messages_Manager
+import flask_server
 
 def main():
+    msg_manager = Messages_Manager()
     # Init display
-    display = DisplayDriver()
+    display = DisplayDriver(msg_manager)
 
     # Get data
     poll_time = 30 #seconds
     scraper = Scraper()
-    threading.Thread(target=scraper.get_data, args=[display.s_bahn_layout]).start()
+    threading.Thread(target=scraper.get_data).start()
 
     # Local server for short messages
-    msg = Dagl_Message()
-    msg.message = "test"
-    display_sleeping = False
-    threading.Thread(target=server.run, args=[msg, display_sleeping]).start()
+    #threading.Thread(target=server.run, args=[msg, display_sleeping]).start()
+    threading.Thread(target=flask_server.start_server, args=[display.toggle_sleep_mode, msg_manager]).start()
 
 
     message = None
     while(True):
         #print("sleeping: " + str(display_sleeping))
-        display.s_bahn_layout(scraper, message)
+        display.main_layout(scraper, message)
         time.sleep(0.1)
 
 

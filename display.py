@@ -16,7 +16,7 @@ from datetime import time as dtTime
 
 class DisplayDriver():
 
-    def __init__(self, startup_screen=True):
+    def __init__(self, msg_manager, startup_screen=True):
         block_orientation = -90
         rotate = 0
         inreverse = False
@@ -39,6 +39,7 @@ class DisplayDriver():
         self.is_sleeping = False
         self.sleep_wait_counter = 0
         self.sleeping_file = "sleeping.txt"
+        self.msg_manager = msg_manager
 
 
     def set_brightness(self):
@@ -94,7 +95,7 @@ class DisplayDriver():
 
     def check_animation(self, direction):
         '''
-        Not working yet. Only extracted out of ´s_bahn_layout´ to clear things up.
+        Not working yet. Only extracted out of ´main_layout´ to clear things up.
         '''
         if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
                     (self.s8_flughafen_minutes_cache[0]["minutes"] < s8_flughafen_minutes[0]["minutes"] and 
@@ -145,38 +146,16 @@ class DisplayDriver():
                     draw.point([63, 0], fill="white")
             self.is_sleeping = True
 
-    def s_bahn_layout(self, scraper, message=None):
-        if self.in_sleep_mode():
-            self.sleep_screen()
-            return
-        s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
-        s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
-        if not self.check_as_usual([s8_flughafen_minutes, s8_herrsching_minutes]):
-            if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
-                    s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
-                self.set_brightness()
-                self.refresh_counter = 0
-                self.s8_flughafen_minutes_cache = s8_flughafen_minutes
-                self.s8_herrsching_minutes_cache = s8_herrsching_minutes
-                with canvas(self.device) as draw:
-                    self.draw_city_line(draw, s8_herrsching_minutes)
-                    self.draw_airport_line(draw, s8_flughafen_minutes)
-        elif message != None and len(message.strip()) != 0:
-            self.set_brightness()
-            self.refresh_counter = 0
-            self.message_counter += 1
-            with canvas(self.device) as draw:
-                text(draw, (16, 0), datetime.now().strftime("%H:%M"),
-                    fill="white", font=proportional(CP437_FONT))
-                try:
-                    text(draw, (0, 9), message[:-1],
-                        fill="white", font=proportional(LCD_FONT))
-                except IndexError as e:
-                    pass
+    def toggle_sleep_mode(self):
+        if self.is_sleeping:
+            print("waking up")
+            self.wake_up()
+            return "awaking"
         else:
-            self.device.contrast(0xFF)
-            self.show_idle_state(scraper)
-            
+            print("going to sleep")
+            self.sleep_screen()
+            return "sleeping"
+
 
     def show_idle_state(self, scraper):
         #successfull_refresh = self.check_refresh(scraper.last_refresh)
@@ -247,3 +226,35 @@ class DisplayDriver():
     def write_second_line(self, data):
         with canvas(self.device) as draw:
             text(draw, (0, 8), data, fill="white", font=proportional(LCD_FONT))
+
+    def main_layout(self, scraper, message=None):
+        if self.in_sleep_mode():
+            self.sleep_screen()
+            return
+        s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
+        s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
+        if not self.check_as_usual([s8_flughafen_minutes, s8_herrsching_minutes]):
+            if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
+                    s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
+                self.set_brightness()
+                self.refresh_counter = 0
+                self.s8_flughafen_minutes_cache = s8_flughafen_minutes
+                self.s8_herrsching_minutes_cache = s8_herrsching_minutes
+                with canvas(self.device) as draw:
+                    self.draw_city_line(draw, s8_herrsching_minutes)
+                    self.draw_airport_line(draw, s8_flughafen_minutes)
+        elif self.msg_manager.has_current_message():
+            self.set_brightness()
+            self.refresh_counter = 0
+            self.message_counter += 1
+            with canvas(self.device) as draw:
+                text(draw, (16, 0), datetime.now().strftime("%H:%M"),
+                    fill="white", font=proportional(CP437_FONT))
+                try:
+                    text(draw, (0, 9), message[:-1],
+                        fill="white", font=proportional(LCD_FONT))
+                except IndexError as e:
+                    pass
+        else:
+            self.device.contrast(0xFF)
+            self.show_idle_state(scraper)
