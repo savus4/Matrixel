@@ -4,6 +4,7 @@ from pathlib import Path
 from werkzeug.exceptions import RequestTimeout
 from Messages_Manager import Messages_Manager, DisplayMessage
 from pprint import pprint
+import logging
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2U"F1Q8z\n\xec]/'
@@ -45,6 +46,7 @@ def apple_touch_icon():
 
 @app.route("/", methods=['GET', 'POST'])
 def start():
+    logging.error("Test")
     print(str(request.form))
     if not 'username' in session:
         if "username" in request.form:
@@ -55,7 +57,7 @@ def start():
         return render_template("EnterName.html")
     elif request.method == "POST" and request.form["submitButton"] == "NewMessage" and request.form["message"]:
         print("New Message entered")
-        global messages_manager
+        #global messages_manager
         messages_manager.new_message(DisplayMessage(session["username"], request.form["message"]))
         return redirect(url_for('message_sent'))
     elif request.method == 'POST' and request.form["submitButton"] == "logout":
@@ -89,4 +91,5 @@ def start_server(sleeping_callback, msg_manager):
     messages_manager = msg_manager
     global display_sleep_callback
     display_sleep_callback = sleeping_callback
+    #app.run(host="0.0.0.0", debug=True, use_reloader=False)
     app.run(host="0.0.0.0")

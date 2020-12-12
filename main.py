@@ -21,10 +21,9 @@ def main():
     threading.Thread(target=flask_server.start_server, args=[display.toggle_sleep_mode, msg_manager]).start()
 
 
-    message = None
     while(True):
         #print("sleeping: " + str(display_sleeping))
-        display.main_layout(scraper, message)
+        display.main_layout(scraper)
         time.sleep(0.1)
 
 

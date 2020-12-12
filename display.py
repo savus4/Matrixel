@@ -37,9 +37,11 @@ class DisplayDriver():
         self.refresh_counter = 0
         self.last_refresh_cache = datetime.now()
         self.is_sleeping = False
+        self.should_sleep = False
         self.sleep_wait_counter = 0
         self.sleeping_file = "sleeping.txt"
         self.msg_manager = msg_manager
+        self.cur_msg_cache = None
 
 
     def set_brightness(self):
@@ -106,33 +108,22 @@ class DisplayDriver():
             animate_flughafen = False
         return animate_flughafen
 
-    def in_sleep_mode(self):
+    def check_sleep_mode(self):
         # auto wake up in the morning
         now_time = datetime.now().time()
         if now_time >= dtTime(5, 50, 0) and now_time <= dtTime(5, 50, 3):
             print("must wake up")
+            self.should_sleep = False
+
+        if not self.should_sleep and self.is_sleeping:
             self.wake_up()
-            return False
-        # don't check file too often
-        if self.sleep_wait_counter < 10:
-            self.sleep_wait_counter += 1
-            return self.is_sleeping
-        else:
-            self.sleep_wait_counter = 0
-        # check if file exists
-        if os.path.exists(self.sleeping_file) and os.path.isfile(self.sleeping_file):
-            return True
-        # wake up if sleeping at the moment
-        elif self.is_sleeping:
-            self.wake_up()
-            return False
+        return self.should_sleep
 
     def wake_up(self):
-        if os.path.exists(self.sleeping_file) and os.path.isfile(self.sleeping_file):
-            os.remove(self.sleeping_file)
         self.s8_flughafen_minutes_cache = None
         self.s8_herrsching_minutes_cache = None
         self.is_sleeping = False
+        self.refresh_counter = 0
                 
     def sleep_screen(self):
         if not self.is_sleeping:
@@ -149,11 +140,11 @@ class DisplayDriver():
     def toggle_sleep_mode(self):
         if self.is_sleeping:
             print("waking up")
-            self.wake_up()
+            self.should_sleep = False
             return "awaking"
         else:
             print("going to sleep")
-            self.sleep_screen()
+            self.should_sleep = True
             return "sleeping"
 
 
@@ -227,9 +218,32 @@ class DisplayDriver():
         with canvas(self.device) as draw:
             text(draw, (0, 8), data, fill="white", font=proportional(LCD_FONT))
 
-    def main_layout(self, scraper, message=None):
-        if self.in_sleep_mode():
+    def check_new_message(self):
+        possibly_new_message = self.msg_manager.get_newest_message()
+        #print(str(possibly_new_message))
+        if self.msg_manager.has_new_message() and (id(possibly_new_message) != id(self.cur_msg_cache)):
+            self.cur_msg_cache = possibly_new_message
+            return True
+        else:
+            return False
+
+    def main_layout(self, scraper):
+        if self.check_sleep_mode():
             self.sleep_screen()
+            return
+        if self.check_new_message():
+            self.set_brightness()
+            self.refresh_counter = 0
+            self.message_counter += 1
+            with canvas(self.device) as draw:
+                text(draw, (0, 0), self.cur_msg_cache.username,
+                    fill="white", font=proportional(CP437_FONT))
+                try:
+                    text(draw, (0, 9), self.cur_msg_cache.message,
+                        fill="white", font=proportional(LCD_FONT))
+                except IndexError as e:
+                    print(str(e))
+                    pass
             return
         s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
         s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
@@ -243,18 +257,19 @@ class DisplayDriver():
                 with canvas(self.device) as draw:
                     self.draw_city_line(draw, s8_herrsching_minutes)
                     self.draw_airport_line(draw, s8_flughafen_minutes)
-        elif self.msg_manager.has_current_message():
-            self.set_brightness()
-            self.refresh_counter = 0
-            self.message_counter += 1
-            with canvas(self.device) as draw:
-                text(draw, (16, 0), datetime.now().strftime("%H:%M"),
-                    fill="white", font=proportional(CP437_FONT))
-                try:
-                    text(draw, (0, 9), message[:-1],
-                        fill="white", font=proportional(LCD_FONT))
-                except IndexError as e:
-                    pass
+        # elif self.check_new_message():
+        #     self.set_brightness()
+        #     self.refresh_counter = 0
+        #     self.message_counter += 1
+        #     with canvas(self.device) as draw:
+        #         text(draw, (0, 0), self.cur_msg_cache.username,
+        #             fill="white", font=proportional(CP437_FONT))
+        #         try:
+        #             text(draw, (0, 9), self.cur_msg_cache.message,
+        #                 fill="white", font=proportional(LCD_FONT))
+        #         except IndexError as e:
+        #             print(str(e))
+        #             pass
         else:
             self.device.contrast(0xFF)
             self.show_idle_state(scraper)

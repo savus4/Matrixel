@@ -15,15 +15,32 @@ class Messages_Manager():
             if username == message.username:
                 return message
 
-    def has_current_message(self):
+    def has_new_message(self):
+        for message in self.messages:
+            if message.unread:
+                return True
         return False
+
+    def get_newest_message(self):
+        for message in self.messages:
+            if message.unread:
+                return message
+
+    def mark_oldest_unread_message_as_read(self):
+        for message in self.messages:
+            if message.unread:
+                message.unread = False
+                return
+
 
 class DisplayMessage():
 
     def __init__(self, username, message):
+        print("Creating new Message", file=sys.stderr)
         self.message = message
         self.username = username
         self.creation_timestamp = datetime.now()
+        self.unread = True
 
 
     def __str__(self) -> str:
