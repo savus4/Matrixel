@@ -3,24 +3,44 @@ from flask.helpers import send_from_directory
 from pathlib import Path
 from werkzeug.exceptions import RequestTimeout
 from Messages_Manager import Messages_Manager, DisplayMessage
-from pprint import pp, pprint
+from pprint import pprint
+
 app = Flask(__name__)
 app.secret_key = b'_5#y2U"F1Q8z\n\xec]/'
+
 
 def msg_callback(messages_manager: Messages_Manager):
     print("New Message was added")
     pprint(messages_manager.messages)
 
-messages = Messages_Manager(msg_callback)
+debug_toggle_sleep = True
+def debug_display_sleep_callback():
+    print("Toggled sleep")
+    global debug_toggle_sleep
+    debug_toggle_sleep = not debug_toggle_sleep
+    if debug_toggle_sleep:
+        return "sleeping"
+    else:
+        return "awaking"
+
+messages_manager = Messages_Manager(msg_callback)
+display_sleep_callback = debug_display_sleep_callback
+
+@app.route("/togglesleep")
+def toggle_sleep():
+    return display_sleep_callback()
+ 
 
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(Path(app.root_path, "static"),
                         "favicon.ico",mimetype="image/vnd.microsoft.icon")
 
+
 @app.route("/apple-touch-icon.png")
 def apple_touch_icon():
     return send_from_directory(Path(app.root_path, "static"), "apple-touch-icon.png",mimetype="image/vnd.microsoft.icon")
+
 
 @app.route("/", methods=['GET', 'POST'])
 def start():
@@ -34,8 +54,8 @@ def start():
         return render_template("EnterName.html")
     elif request.method == "POST" and request.form["submitButton"] == "NewMessage" and request.form["message"]:
         print("New Message entered")
-        global messages
-        messages.new_message(DisplayMessage(session["username"], request.form["message"]))
+        global messages_manager
+        messages_manager.new_message(DisplayMessage(session["username"], request.form["message"]))
         return redirect(url_for('message_sent'))
     elif request.method == 'POST' and request.form["submitButton"] == "logout":
         print("Logout requested")
@@ -53,9 +73,18 @@ def start():
 @app.route("/message-sent", methods=["GET", "POST"])
 def message_sent():
     if request.method == "GET":
-        return render_template("messageSent.html", message=messages.get_last_message_from(session["username"]))
+        return render_template("messageSent.html", message=messages_manager.get_last_message_from(session["username"]))
     else:
         return redirect(url_for("start"))
 
+
 if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0")
+    
+
+def start_server(sleeping_callback, msg_callback):
+    global messages_manager
+    messages_manager = Messages_Manager(msg_callback)
+    global display_sleeping
+    display_sleeping = sleeping_callback
     app.run(debug=True, host="0.0.0.0")
