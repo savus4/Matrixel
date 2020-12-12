@@ -1,0 +1,21 @@
+<html>
+
+<head>
+    <title>Dagl-Info</title>
+    <link rel="apple-touch-icon" href="data/whats_ingo_icon.png">
+</head>
+
+<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <h1 style="font-family:Helvetica,serif;">Dagl-Info</h1>
+    <p style="font-family:Helvetica,serif;">Hi {{ session["username"] }}!</p>
+    <p style="font-family:Helvetica,serif;">Deine Nachricht an die Daglers</p>
+    <form action="" method="POST">
+        <input name="message" type="text" placeholder="Nachricht" /> <br />
+        <button type="submit" name="submitButton" value="NewMessage">Senden</button>
+        <br>
+        <button type="submit" name="submitButton" value="logout">Name ändern</button>
+    </form>
+</body>
+
+</html>
