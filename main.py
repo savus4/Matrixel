@@ -24,7 +24,7 @@ def main():
     while(True):
         #print("sleeping: " + str(display_sleeping))
         display.main_layout(scraper)
-        time.sleep(0.1)
+        time.sleep(0.05)
 
 
 if __name__ == "__main__":

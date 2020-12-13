@@ -43,6 +43,22 @@ def favicon():
 def apple_touch_icon():
     return send_from_directory(Path(app.root_path, "static"), "apple-touch-icon.png",mimetype="image/vnd.microsoft.icon")
 
+@app.route("/mark-message-as-unread")
+def mark_message_as_unread():
+    global messages_manager
+    number_of_unread_messages_left = messages_manager.mark_oldest_unread_message_as_read()
+    ret_str = number_of_unread_messages_left
+    try:
+        number_unread_int = int(number_of_unread_messages_left)
+        if number_unread_int <= 0:
+            ret_str = "Keine weiteren Nachrichten!"
+        elif number_unread_int == 1:
+            ret_str = "Letzte Nachricht."
+        else:
+            ret_str = "Noch " + str(number_unread_int-1) + " weitere Nachrichten verfügbar."
+    except:
+        pass
+    return ret_str
 
 @app.route("/", methods=['GET', 'POST'])
 def start():
@@ -55,10 +71,11 @@ def start():
             return redirect(url_for('start'))
         print("User with no username enters")
         return render_template("EnterName.html")
-    elif request.method == "POST" and request.form["submitButton"] == "NewMessage" and request.form["message"]:
-        print("New Message entered")
+    elif request.method == "POST" and request.form["submitButton"] == "NewMessage":
+        new_message = request.form["message"]
+        print("New Message: " + new_message)
         global messages_manager
-        messages_manager.new_message(DisplayMessage(session["username"], request.form["message"]))
+        messages_manager.new_message(DisplayMessage(session["username"], new_message))
         return redirect(url_for('message_sent'))
     elif request.method == 'POST' and request.form["submitButton"] == "logout":
         print("Logout requested")
@@ -92,4 +109,4 @@ def start_server(sleeping_callback, msg_manager):
     global display_sleep_callback
     display_sleep_callback = sleeping_callback
     #app.run(host="0.0.0.0", debug=True, use_reloader=False)
-    app.run(host="0.0.0.0")
+    app.run(port=5478, host="::")

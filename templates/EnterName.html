@@ -1,6 +1,24 @@
+<html>
+
+<head>
+    <title>Matrix-Info</title>
+</head>
+
+<body>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <h1 style="font-family:Helvetica,serif;">Dagl-Info</h1>
 <p style="font-family:Helvetica,serif;">Bitte gib deinen Namen ein!</p>
-<form method="post">
-    <p><input type=text name=username>
+<form method="post" autocomplete="off">
+    <p><input autocomplete="false" type=text name=username required autofocus>
     <p><input type=submit value=Login>
 </form>
+<script>
+    let tagArr = document.getElementsByTagName("input");
+    for (let i = 0; i < tagArr.length; i++) {
+      tagArr[i].autocomplete = 'off';
+    }
+  </script>
+
+</body>
+
+</html>
