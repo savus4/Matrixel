@@ -12,11 +12,12 @@ import time
 from helper import make_string_from_list, get_width, get_image_as_list
 from datetime import datetime, timedelta
 from datetime import time as dtTime
+from line_manager import Line_Manager
 
 
 class DisplayDriver():
 
-    def __init__(self, msg_manager, startup_screen=True):
+    def __init__(self, msg_manager, line_manager: Line_Manager, startup_screen=True):
         block_orientation = -90
         rotate = 0
         inreverse = False
@@ -41,6 +42,7 @@ class DisplayDriver():
         self.should_sleep = False
         self.sleep_wait_counter = 0
         self.sleeping_file = "sleeping.txt"
+        self.line_manager = line_manager
         self.msg_manager = msg_manager
         self.cur_msg_cache = None
 
@@ -100,14 +102,15 @@ class DisplayDriver():
         '''
         Not working yet. Only extracted out of ´main_layout´ to clear things up.
         '''
-        if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
-                    (self.s8_flughafen_minutes_cache[0]["minutes"] < s8_flughafen_minutes[0]["minutes"] and 
-                    self.s8_flughafen_minutes_cache[0]["minutes"] < 2 and
-                    s8_flughafen_minutes[0]["minutes"] < 5)):
-                    animate_flughafen = True
-        else:
-            animate_flughafen = False
-        return animate_flughafen
+        pass
+        # if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
+        #             (self.s8_flughafen_minutes_cache[0]["minutes"] < s8_flughafen_minutes[0]["minutes"] and 
+        #             self.s8_flughafen_minutes_cache[0]["minutes"] < 2 and
+        #             s8_flughafen_minutes[0]["minutes"] < 5)):
+        #             animate_flughafen = True
+        # else:
+        #     animate_flughafen = False
+        # return animate_flughafen
 
     def check_sleep_mode(self):
         # auto wake up in the morning
@@ -258,7 +261,7 @@ class DisplayDriver():
                 print(str(e))
                 pass
 
-    def main_layout(self, scraper):
+    def main_layout(self):
         if self.check_new_message():
             self.display_message()
             return
@@ -267,7 +270,7 @@ class DisplayDriver():
             return
         s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
         s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
-        if not self.check_as_usual([s8_flughafen_minutes, s8_herrsching_minutes]):
+        if not self.line_manager.check_as_usual():
             if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
                     s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
                 self.set_brightness()

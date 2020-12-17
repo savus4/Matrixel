@@ -8,6 +8,7 @@ import datetime as dt
 from datetime import time as dtTime
 import json
 from math import floor
+from line_manager import Line_Manager
 import pprint
 
 
@@ -29,13 +30,14 @@ class Scraper:
 
     raw_api_data = dict()
 
-    def get_data(self, refresh_s_bahn_layout=None):
+    def __init__(self, line_manager: Line_Manager) -> None:
+        self.line_manager = line_manager
+
+    def get_data(self):
         while True:
-            self.fetch_data()
+            self.line_manager.new_data(self.fetch_data())
             self.s8_city_min_list = self.get_minutes(self.s8_into_city_stations)
             self.s8_airport_min_list = self.get_minutes(self.s8_to_airport_stations)
-            if refresh_s_bahn_layout:
-                refresh_s_bahn_layout(self)
             #print(str(self.s8_city_min_list))
             time.sleep(self.get_adaptive_period())
         
@@ -44,7 +46,7 @@ class Scraper:
         resp = None
         while True: 
             try:
-                resp: requests.Response = requests.get(self.daglfing_sbahn_api)
+                resp: requests.Response = requests.get(self.daglfing_sbahn_api, timeout=15.0)
                 if resp == None or resp.content == None or len(resp.content) == 0:
                     print("Failed to fetch at " + str(dt.datetime.now()))
                     self.minutes_since_last_refresh = dt.datetime.now() - self.last_refresh
@@ -61,6 +63,7 @@ class Scraper:
         self.raw_api_data = json.loads(resp.content)
         self.last_refresh = dt.datetime.now()
         self.minutes_since_last_refresh = dt.datetime.now() - self.last_refresh
+        self.line_manager.new_data(json.loads(resp.content))
 
     def get_minutes(self, search_for):
         min_list = list()
@@ -90,7 +93,7 @@ class Scraper:
                             minutes = floor(seconds / 60)
                         else:
                             minutes = 0
-                            departureTimeDisplay = "Jetzt"
+                            #departureTimeDisplay = "Jetzt"
                         abfahrt_dict["minutes"] = minutes
                         min_list.append(abfahrt_dict)
                         if sev:
@@ -100,7 +103,7 @@ class Scraper:
                         abfahrt_dict["minutes"] = "X"
                         abfahrt_dict["as_usual"] = False
                         min_list.append(abfahrt_dict)
-                        departureTimeDisplay = "X"
+                        #departureTimeDisplay = "X"
                     if live:
                         delay = str(delay) + "m"
                     else:
@@ -174,7 +177,13 @@ class Scraper:
         else:
             return 29
 
-#print("test")
-#scraper = Scraper()
-#scraper.get_data()
-#pprint.pprint(str(scraper.s8_airport_min_list))
+
+if __name__ == "__main__":
+    from departures import Departures
+    from line_manager import Line_Manager
+    from stations import s8
+    s8_city = Departures(s8.into_city, s8.into_city_warning, s8.into_city_times)
+    s8_airport = Departures(s8.to_airport_times, s8.to_airport_warning, s8.to_airport_times)
+    lines = Line_Manager([s8_city, s8_airport])
+    scraper = Scraper(lines)
+    scraper.get_data()

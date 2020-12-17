@@ -4,27 +4,36 @@ import time
 from display import DisplayDriver
 #import server
 from Messages_Manager import Messages_Manager
+from departures import Departures
+from line_manager import Line_Manager
+from stations import s8
 import flask_server
+from luma.core.sprite_system import framerate_regulator
+
 
 def main():
     msg_manager = Messages_Manager()
+    s8_city = Departures(s8.into_city, s8.into_city_warning, s8.into_city_times)
+    s8_airport = Departures(s8.to_airport_times, s8.to_airport_warning, s8.to_airport_times)
+    lines = Line_Manager([s8_city, s8_airport])
     # Init display
-    display = DisplayDriver(msg_manager)
+    display = DisplayDriver(msg_manager, lines)
 
     # Get data
-    poll_time = 30 #seconds
-    scraper = Scraper()
+    #poll_time = 30 #seconds
+    scraper = Scraper(lines)
     threading.Thread(target=scraper.get_data).start()
 
     # Local server for short messages
     #threading.Thread(target=server.run, args=[msg, display_sleeping]).start()
     threading.Thread(target=flask_server.start_server, args=[display.toggle_sleep_mode, msg_manager]).start()
 
-
+    regulator = framerate_regulator(fps=15)
     while(True):
-        #print("sleeping: " + str(display_sleeping))
-        display.main_layout(scraper)
-        time.sleep(0.05)
+        with regulator:
+            #print("sleeping: " + str(display_sleeping))
+            display.main_layout()
+            #time.sleep(0.05)
 
 
 if __name__ == "__main__":
