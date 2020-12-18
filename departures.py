@@ -5,13 +5,14 @@ from math import floor
 import json
 import os
 from typing import List
+from pprint import pprint
 
 class Departure:
 
     def __init__(self, departure, times, interval) -> None:
-        self.parse_departure_dict(departure)
         self.__times = times
         self.__interval = interval
+        self.parse_departure_dict(departure)
         
     def parse_departure_dict(self, departure):
         self.destination = departure["destination"]
@@ -25,7 +26,7 @@ class Departure:
         self.sev: bool = departure["sev"]
         if not self.cancelled:
             self.current_departure_time = dt.datetime.fromtimestamp(departure["departureTime"]/1000) + dt.timedelta(minutes = self.delay)
-            self.as_usual = self.generate_as_usual(self.current_departure_time, self.destination)
+            self.as_usual = self.generate_as_usual(self.current_departure_time)
         else:
             self.as_usual = False
 
@@ -37,9 +38,9 @@ class Departure:
     def minutes(self):
         return floor(self.seconds() / 60)
 
-    def generate_as_usual(self, time, direction):
+    def generate_as_usual(self, time):
         as_usual = False
-        next_possible_departures = self.get_next_exptected_times(direction)
+        next_possible_departures = self.get_next_exptected_times()
         for next_possible_departure in next_possible_departures:
             #print(str(time) + " Possible: " + str(next_possible_departure) + "; Difference: " + str((next_possible_departure - time).total_seconds()))
             if (time - next_possible_departure).total_seconds() <= 100 and (time - next_possible_departure).total_seconds() >= -50:
@@ -131,7 +132,8 @@ class Departure:
 
 class Departures:
 
-    def __init__(self, stations, warning_stations, times, official_direction=None) -> None:
+    def __init__(self, name, stations, warning_stations, times, official_direction=None) -> None:
+        self.name = name
         self.stations = stations
         self.warning_stations = warning_stations
         self.times = times
@@ -150,6 +152,8 @@ class Departures:
 
     def add_departures(self, response):
         new_departures = list()
+        #pprint("New Response *********************")
+        #pprint(response)
         for departure in response["departures"]:
             if departure["destination"] in self.stations:
                 new_departures.append(Departure(departure, self.times, self.interval))
@@ -180,11 +184,11 @@ class Departures:
             return self.departures
 
     def check_as_usual(self, number_departures=3):
-        as_usual = True
-        for departures in self.departures:
-            i = 0
-            for departure in departures:     
-                if i < number_departures and not departure["as_usual"]:
-                    as_usual = False
-                i = i + 1
-        return as_usual
+        i = 0  
+        for departure in self.departures:
+            if i < number_departures:
+                if not departure.as_usual:
+                    return False
+            else:
+                return True
+            i += 1

@@ -35,9 +35,9 @@ class Scraper:
 
     def get_data(self):
         while True:
-            self.line_manager.new_data(self.fetch_data())
-            self.s8_city_min_list = self.get_minutes(self.s8_into_city_stations)
-            self.s8_airport_min_list = self.get_minutes(self.s8_to_airport_stations)
+            self.fetch_data()
+            #self.s8_city_min_list = self.get_minutes(self.s8_into_city_stations)
+            #self.s8_airport_min_list = self.get_minutes(self.s8_to_airport_stations)
             #print(str(self.s8_city_min_list))
             time.sleep(self.get_adaptive_period())
         

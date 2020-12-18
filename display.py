@@ -62,7 +62,7 @@ class DisplayDriver():
         time.sleep(display_time)
 
 
-    def display_minutes(self, draw, departures: Departures, cache, x, y):
+    def display_minutes(self, draw, departures: list, cache, x, y):
         animate = False
         # if not (minutes == cache):
         #     if (len(cache) != 0 and len(minutes) != 0 and 
@@ -72,8 +72,8 @@ class DisplayDriver():
         #         animate = True
 
         soonest_bahn = True
-        for departure in departures.departures:
-            minute = departure.minutes
+        for departure in departures:
+            minute = departure.minutes()
             width = get_width(minute)
             if soonest_bahn and animate:
                 pass
@@ -92,11 +92,11 @@ class DisplayDriver():
         text(draw, (x-3, y), "  ",
                     fill="white", font=proportional(LCD_FONT))
 
-    def get_next_connections_excerpt(self, min_list):
-        if len(min_list) >= self.number_next_connections:
-            return min_list[0:self.number_next_connections]
-        else:
-            return min_list
+    # def get_next_connections_excerpt(self, min_list):
+    #     if len(min_list) >= self.number_next_connections:
+    #         return min_list[0:self.number_next_connections]
+    #     else:
+    #         return min_list
 
 
     def check_animation(self, direction):
@@ -157,8 +157,8 @@ class DisplayDriver():
     def show_idle_state(self):
         #successfull_refresh = self.check_refresh(scraper.last_refresh)
         minutes_since_last_refresh = None
-        if self.line_manager.last_refresh:
-            minutes_since_last_refresh = datetime.now() - self.line_manager.last_refresh
+        if self.line_manager.last_refresh():
+            minutes_since_last_refresh = datetime.now() - self.line_manager.last_refresh()
         #if scraper.last_refresh:
         #    minutes_since_last_refresh = datetime.now() - scraper.last_refresh
         #if minutes_since_last_refresh:
@@ -271,8 +271,8 @@ class DisplayDriver():
         if self.check_sleep_mode():
             self.sleep_screen()
             return
-        s8_flughafen_minutes = self.get_next_connections_excerpt(3)
-        s8_herrsching_minutes = self.get_next_connections_excerpt(3)
+        s8_flughafen_minutes = self.line_manager.get("s8", "flughafen münchen").get_next_connections_excerpt(3)
+        s8_herrsching_minutes = self.line_manager.get("s8", "herrsching").get_next_connections_excerpt(3)
         if not self.line_manager.check_as_usual():
             if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
                     s8_herrsching_minutes == self.s8_herrsching_minutes_cache):

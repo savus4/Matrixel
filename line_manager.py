@@ -20,7 +20,19 @@ class Line_Manager():
 
     def last_refresh(self) -> datetime:
         current_last_refresh = datetime.now()
+        now_save = current_last_refresh
         for line in self.lines:
-            if line.last_refresh < current_last_refresh:
+            if line.last_refresh and line.last_refresh < current_last_refresh:
                 current_last_refresh = line.last_refresh
-        return current_last_refresh
+        if current_last_refresh != now_save:
+            return current_last_refresh
+        else:
+            return None
+
+    def get(self, line, direction):
+        for cur_line in self.lines:
+            #print(str(cur_line.name) + " " + str(line) + " " + str(cur_line.direction) + " " + str(direction))
+            if cur_line.name.casefold() == line.casefold() and cur_line.direction.casefold() == direction.casefold():
+                return cur_line
+        raise Exception(line + " " + direction + " hasn't been initialized with the Line Manager.")
+                
