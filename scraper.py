@@ -182,8 +182,8 @@ if __name__ == "__main__":
     from departures import Departures
     from line_manager import Line_Manager
     from stations import s8
-    s8_city = Departures(s8.into_city, s8.into_city_warning, s8.into_city_times)
-    s8_airport = Departures(s8.to_airport_times, s8.to_airport_warning, s8.to_airport_times)
+    s8_city = Departures(s8.name, s8.into_city, s8.into_city_warning, s8.into_city_times)
+    s8_airport = Departures(s8.name, s8.to_airport_times, s8.to_airport_warning, s8.to_airport_times)
     lines = Line_Manager([s8_city, s8_airport])
     scraper = Scraper(lines)
     scraper.get_data()

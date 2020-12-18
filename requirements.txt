@@ -1,2 +1,5 @@
 flask
 flask-wtf
+requests
+luma.core
+luma.led_matrix

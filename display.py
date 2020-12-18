@@ -1,4 +1,3 @@
-from departures import Departures
 import time
 import os
 from luma.core.interface.serial import spi, noop
@@ -8,7 +7,6 @@ from luma.led_matrix.device import max7219
 from luma.core.legacy import text, show_message
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
 from PIL import Image
-import re
 import time
 from helper import make_string_from_list, get_width, get_image_as_list
 from datetime import datetime, timedelta
@@ -91,13 +89,6 @@ class DisplayDriver():
                    x-3, y+5, x-2, y+5, x-3, y+6, x-2, y+6], fill="black")
         text(draw, (x-3, y), "  ",
                     fill="white", font=proportional(LCD_FONT))
-
-    # def get_next_connections_excerpt(self, min_list):
-    #     if len(min_list) >= self.number_next_connections:
-    #         return min_list[0:self.number_next_connections]
-    #     else:
-    #         return min_list
-
 
     def check_animation(self, direction):
         '''
@@ -232,6 +223,8 @@ class DisplayDriver():
         if self.msg_manager.has_new_message():
             if id(possibly_new_message) != id(self.cur_msg_cache):
                 self.cur_msg_cache = possibly_new_message
+                self.new_message = True
+            self.new_message = False
             return True
         else:
             if self.cur_msg_cache:
@@ -245,6 +238,8 @@ class DisplayDriver():
         self.message_counter += 1
         msg_length = self.cur_msg_cache.length
         text_begin = 0
+        if self.new_message:
+            self.message_counter = 0
         if msg_length > self.width:
             animation_delay = 30
             if self.message_counter > animation_delay:
@@ -254,15 +249,16 @@ class DisplayDriver():
                 #print("true!")
                 self.message_counter = 0
         #print("textbegin: " + str(text_begin))
-        with canvas(self.device) as draw:
-            text(draw, (0, 0), self.cur_msg_cache.username,
-                fill="white", font=proportional(CP437_FONT))
-            try:
-                text(draw, (text_begin, 9), self.cur_msg_cache.message,
-                    fill="white", font=proportional(LCD_FONT))
-            except IndexError as e:
-                print(str(e))
-                pass
+        if (msg_length > self.width) or self.new_message:
+            with canvas(self.device) as draw:
+                text(draw, (0, 0), self.cur_msg_cache.username,
+                    fill="white", font=proportional(CP437_FONT))
+                try:
+                    text(draw, (text_begin, 9), self.cur_msg_cache.message,
+                        fill="white", font=proportional(LCD_FONT))
+                except IndexError as e:
+                    print(str(e))
+                    pass
 
     def main_layout(self):
         if self.check_new_message():
