@@ -1,3 +1,4 @@
+from departures import Departures
 import time
 import os
 from luma.core.interface.serial import spi, noop
@@ -61,7 +62,7 @@ class DisplayDriver():
         time.sleep(display_time)
 
 
-    def display_minutes(self, draw, minutes, cache, x, y):
+    def display_minutes(self, draw, departures: Departures, cache, x, y):
         animate = False
         # if not (minutes == cache):
         #     if (len(cache) != 0 and len(minutes) != 0 and 
@@ -71,8 +72,8 @@ class DisplayDriver():
         #         animate = True
 
         soonest_bahn = True
-        for departure in minutes:
-            minute = departure["minutes"]
+        for departure in departures.departures:
+            minute = departure.minutes
             width = get_width(minute)
             if soonest_bahn and animate:
                 pass
@@ -153,11 +154,13 @@ class DisplayDriver():
             return "sleeping"
 
 
-    def show_idle_state(self, scraper):
+    def show_idle_state(self):
         #successfull_refresh = self.check_refresh(scraper.last_refresh)
         minutes_since_last_refresh = None
-        if scraper.last_refresh:
-            minutes_since_last_refresh = datetime.now() - scraper.last_refresh
+        if self.line_manager.last_refresh:
+            minutes_since_last_refresh = datetime.now() - self.line_manager.last_refresh
+        #if scraper.last_refresh:
+        #    minutes_since_last_refresh = datetime.now() - scraper.last_refresh
         #if minutes_since_last_refresh:
         #   print("minutes since last refresh: " + str(minutes_since_last_refresh) + 
         #       "\nrefresh_counter: " + str(self.refresh_counter))
@@ -268,8 +271,8 @@ class DisplayDriver():
         if self.check_sleep_mode():
             self.sleep_screen()
             return
-        s8_flughafen_minutes = self.get_next_connections_excerpt(scraper.s8_airport_min_list)
-        s8_herrsching_minutes = self.get_next_connections_excerpt(scraper.s8_city_min_list)
+        s8_flughafen_minutes = self.get_next_connections_excerpt(3)
+        s8_herrsching_minutes = self.get_next_connections_excerpt(3)
         if not self.line_manager.check_as_usual():
             if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
                     s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
@@ -282,4 +285,4 @@ class DisplayDriver():
                     self.draw_airport_line(draw, s8_flughafen_minutes)
         else:
             self.device.contrast(0xFF)
-            self.show_idle_state(scraper)
+            self.show_idle_state()

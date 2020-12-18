@@ -4,6 +4,7 @@ from datetime import time as dtTime
 from math import floor
 import json
 import os
+from typing import List
 
 class Departure:
 
@@ -142,7 +143,7 @@ class Departures:
         self.last_refresh = None
         self.minutes_since_last_refresh = None
         self.min_list = None
-        self.departures = list()
+        self.departures: List[Departure] = list()
 
     def new_data(self, response):
         self.add_departures(response)
