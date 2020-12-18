@@ -45,7 +45,6 @@ class DisplayDriver():
         self.msg_manager = msg_manager
         self.cur_msg_cache = None
 
-
     def set_brightness(self):
         now_time = datetime.utcnow().time()
         if now_time >= dtTime(17, 30) or now_time <= dtTime(6, 30):
@@ -59,23 +58,10 @@ class DisplayDriver():
                     fill="white", font=proportional(CP437_FONT))
         time.sleep(display_time)
 
-
     def display_minutes(self, draw, departures: list, cache, x, y):
-        animate = False
-        # if not (minutes == cache):
-        #     if (len(cache) != 0 and len(minutes) != 0 and 
-        #         (cache[0]["minutes"] < minutes[0]["minutes"] and 
-        #         cache["minutes"] < 2 and
-        #         minutes[0]["minutes"] < 5)):
-        #         animate = True
-
-        soonest_bahn = True
         for departure in departures:
             minute = departure.minutes()
             width = get_width(minute)
-            if soonest_bahn and animate:
-                pass
-                soonest_bahn = False
             #print(str(minute) + ": " + str(x) + "/" + str(y))
             text(draw, (x, y), str(minute),
                 fill="white", font=proportional(LCD_FONT))
@@ -89,20 +75,6 @@ class DisplayDriver():
                    x-3, y+5, x-2, y+5, x-3, y+6, x-2, y+6], fill="black")
         text(draw, (x-3, y), "  ",
                     fill="white", font=proportional(LCD_FONT))
-
-    def check_animation(self, direction):
-        '''
-        Not working yet. Only extracted out of ´main_layout´ to clear things up.
-        '''
-        pass
-        # if (len(self.s8_flughafen_minutes_cache) != 0 and len(s8_flughafen_minutes) != 0 and 
-        #             (self.s8_flughafen_minutes_cache[0]["minutes"] < s8_flughafen_minutes[0]["minutes"] and 
-        #             self.s8_flughafen_minutes_cache[0]["minutes"] < 2 and
-        #             s8_flughafen_minutes[0]["minutes"] < 5)):
-        #             animate_flughafen = True
-        # else:
-        #     animate_flughafen = False
-        # return animate_flughafen
 
     def check_sleep_mode(self):
         # auto wake up in the morning
@@ -146,15 +118,10 @@ class DisplayDriver():
 
 
     def show_idle_state(self):
-        #successfull_refresh = self.check_refresh(scraper.last_refresh)
         minutes_since_last_refresh = None
         if self.line_manager.last_refresh():
             minutes_since_last_refresh = datetime.now() - self.line_manager.last_refresh()
-        #if scraper.last_refresh:
-        #    minutes_since_last_refresh = datetime.now() - scraper.last_refresh
-        #if minutes_since_last_refresh:
-        #   print("minutes since last refresh: " + str(minutes_since_last_refresh) + 
-        #       "\nrefresh_counter: " + str(self.refresh_counter))
+
         if minutes_since_last_refresh and minutes_since_last_refresh < timedelta(minutes=3):
             self.reset_refresh_counter_at(30*20)
             if self.refresh_counter == 0:
@@ -192,22 +159,10 @@ class DisplayDriver():
             "/home/pi/Documents/mvg_departure_monitor/icons/frauenkirche.txt", 0, 0), fill="white")
         self.display_minutes(draw, s8_herrsching_minutes, self.s8_herrsching_minutes_cache, 9, 0)
 
-
     def draw_airport_line(self, draw, s8_flughafen_minutes):
         draw.point(get_image_as_list(
             "/home/pi/Documents/mvg_departure_monitor/icons/airplane.txt", 0, 8), fill="white")
         self.display_minutes(draw, s8_flughafen_minutes, self.s8_flughafen_minutes_cache, 9, 9)
-
-
-    def check_as_usual(self, lines, number_departures=3):
-        as_usual = True
-        for departures in lines:
-            i = 0
-            for departure in departures:     
-                if i < number_departures and not departure["as_usual"]:
-                    as_usual = False
-                i = i + 1
-        return as_usual
 
     def write_first_line(self, data):
         with canvas(self.device) as draw:
