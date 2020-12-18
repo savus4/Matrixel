@@ -163,7 +163,7 @@ class Departures:
     def calc_interval(self, times):
         intervals = list()
         for i in range(len(times)):
-            if i - 1 < len(times):
+            if i + 1 < len(times):
                 intervals.append(times[i+1]-times[i])
             else:
                 intervals.append(60 - times[-1] + times[0])

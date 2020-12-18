@@ -13,9 +13,11 @@ from luma.core.sprite_system import framerate_regulator
 
 def main():
     msg_manager = Messages_Manager()
+
     s8_city = Departures(s8.into_city, s8.into_city_warning, s8.into_city_times)
     s8_airport = Departures(s8.to_airport_times, s8.to_airport_warning, s8.to_airport_times)
     lines = Line_Manager([s8_city, s8_airport])
+    
     # Init display
     display = DisplayDriver(msg_manager, lines)
 
