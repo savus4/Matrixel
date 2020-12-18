@@ -176,10 +176,11 @@ class DisplayDriver():
         possibly_new_message = self.msg_manager.get_newest_message()
         #print(str(possibly_new_message)+ "has new message: " + str(self.msg_manager.has_new_message()))
         if self.msg_manager.has_new_message():
+            self.new_message = False
             if id(possibly_new_message) != id(self.cur_msg_cache):
                 self.cur_msg_cache = possibly_new_message
+                print("new message!!!!!!!!!!!!!")
                 self.new_message = True
-            self.new_message = False
             return True
         else:
             if self.cur_msg_cache:
@@ -196,11 +197,11 @@ class DisplayDriver():
         if self.new_message:
             self.message_counter = 0
         if msg_length > self.width:
-            animation_delay = 30
+            animation_delay = 35
             if self.message_counter > animation_delay:
-                #print("message counter in if: " + str(self.message_counter))
+                #rint("message counter in if: " + str(self.message_counter))
                 text_begin = animation_delay - self.message_counter
-            if text_begin < (-msg_length - 10):
+            if text_begin < (-msg_length - 7):
                 #print("true!")
                 self.message_counter = 0
         #print("textbegin: " + str(text_begin))
