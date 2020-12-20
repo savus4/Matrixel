@@ -12,6 +12,7 @@ from helper import make_string_from_list, get_width, get_image_as_list
 from datetime import datetime, timedelta
 from datetime import time as dtTime
 from line_manager import Line_Manager
+from pathlib import Path
 
 
 class DisplayDriver():
@@ -97,13 +98,10 @@ class DisplayDriver():
     def sleep_screen(self):
         if not self.is_sleeping:
             self.device.contrast(0xFF)
-            sleep_file = "/home/pi/Documents/mvg_departure_monitor/icons/moon.txt"
+            sleep_file = Path("/home/pi/Documents/mvg_departure_monitor/icons/moon.txt")
             with canvas(self.device) as draw:
-                if os.path.exists(sleep_file) and os.path.isfile(sleep_file):
-                    draw.point(get_image_as_list(
-                               "/home/pi/Documents/mvg_departure_monitor/icons/moon.txt", 55, 2), fill="white")
-                else:
-                    draw.point([63, 0], fill="white")
+                draw.point([63,0], fill="white")
+                # draw.point(get_image_as_list(sleep_file, 55, 2), fill="white")
             self.is_sleeping = True
 
     def toggle_sleep_mode(self):
