@@ -22,7 +22,7 @@ class Sonos_State():
             self.rooms[room_name] = Sonos_Room(room_name)
 
     def room_is_playing(self, room_name: str):
-        return self.rooms[room_name].playing_state == playing_state.playing
+        return self.rooms[room_name].playing_state == playing_state.playing and self.rooms[room_name].playing_type == "track"
 
     def any_room_is_playing(self):
         for room in self.rooms.values():
@@ -79,6 +79,7 @@ class Sonos_Room():
     def process_new_state(self, state_object: json):
         #pprint(state_object)
         self.playing_state = self.parse_playing_state(state_object["playbackState"])
+        self.playing_type = state_object["currentTrack"]["type"]
         self.current_track = Track(state_object["currentTrack"])
         self.mute = state_object["mute"]
         self.elapsed_time = state_object["elapsedTime"]
@@ -87,10 +88,10 @@ class Sonos_Room():
     def parse_playing_state(self, playing_state_str):
         if playing_state_str == "PLAYING":
             return playing_state.playing
-        elif playing_state_str == "PAUSED_PLAYBACK":
+        elif playing_state_str in ["PAUSED_PLAYBACK", "STOPPED", "TRANSITIONING"]:
             return playing_state.paused
         else:
-            logging.ERROR("Unknown playing state: " + playing_state_str + os.linesep + "State set to paused.")
+            logging.error("Unknown playing state: " + playing_state_str + os.linesep + "State set to paused.")
             return playing_state.paused
 
 

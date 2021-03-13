@@ -241,7 +241,7 @@ class DisplayDriver():
         if playing_rooms:
             with canvas(self.device) as draw:
                 text(draw, (0, 0), list(playing_rooms.values())[0].current_track.name,
-                        fill="white", font=proportional(CP437_FONT))
+                        fill="white", font=proportional(LCD_FONT))
                 text(draw, (0, 9), list(playing_rooms.values())[0].current_track.artist,
                     fill="white", font=proportional(LCD_FONT))
 
