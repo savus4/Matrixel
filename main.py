@@ -30,11 +30,13 @@ def main():
     #threading.Thread(target=server.run, args=[msg, display_sleeping]).start()
     threading.Thread(target=flask_server.start_server, args=[display.toggle_sleep_mode, msg_manager]).start()
 
-    regulator = framerate_regulator(fps=15)
+    curr_time = time.time()
+    regulator = framerate_regulator(fps=20)
     while(True):
         with regulator:
             #print("sleeping: " + str(display_sleeping))
             display.main_layout()
+            
             #time.sleep(0.05)
 
 

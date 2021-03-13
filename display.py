@@ -28,8 +28,6 @@ class DisplayDriver():
                               rotate=rotate or 0, blocks_arranged_in_reverse_order=inreverse,
                               width=self.width, height=height)
         self.device.contrast(0xFF)
-        if startup_screen:
-            self.start_up_screen()
         self.s8_flughafen_minutes_cache = list()
         self.s8_herrsching_minutes_cache = list()
         self.minute_cache = 0
@@ -41,10 +39,11 @@ class DisplayDriver():
         self.is_sleeping = False
         self.should_sleep = False
         self.sleep_wait_counter = 0
-        self.sleeping_file = "sleeping.txt"
         self.line_manager = line_manager
         self.msg_manager = msg_manager
         self.cur_msg_cache = None
+        if startup_screen:
+            self.start_up_screen()
 
     def set_brightness(self):
         now_time = datetime.utcnow().time()
@@ -55,7 +54,7 @@ class DisplayDriver():
 
     def start_up_screen(self, display_time=2):
         with canvas(self.device) as draw:
-                text(draw, (0, 4), "Dagl-Info",
+                text(draw, (0, 4), "Dohl-Info",
                     fill="white", font=proportional(CP437_FONT))
         time.sleep(display_time)
 
@@ -221,18 +220,19 @@ class DisplayDriver():
         if self.check_sleep_mode():
             self.sleep_screen()
             return
-        s8_flughafen_minutes = self.line_manager.get("s8", "flughafen münchen").get_next_connections_excerpt(3)
-        s8_herrsching_minutes = self.line_manager.get("s8", "herrsching").get_next_connections_excerpt(3)
-        if not self.line_manager.check_as_usual():
-            if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
-                    s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
-                self.set_brightness()
-                self.refresh_counter = 0
-                self.s8_flughafen_minutes_cache = s8_flughafen_minutes
-                self.s8_herrsching_minutes_cache = s8_herrsching_minutes
-                with canvas(self.device) as draw:
-                    self.draw_city_line(draw, s8_herrsching_minutes)
-                    self.draw_airport_line(draw, s8_flughafen_minutes)
+        if False:
+            s8_flughafen_minutes = self.line_manager.get("s8", "flughafen münchen").get_next_connections_excerpt(3)
+            s8_herrsching_minutes = self.line_manager.get("s8", "herrsching").get_next_connections_excerpt(3)
+            if not self.line_manager.check_as_usual():
+                if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
+                        s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
+                    self.set_brightness()
+                    self.refresh_counter = 0
+                    self.s8_flughafen_minutes_cache = s8_flughafen_minutes
+                    self.s8_herrsching_minutes_cache = s8_herrsching_minutes
+                    with canvas(self.device) as draw:
+                        self.draw_city_line(draw, s8_herrsching_minutes)
+                        self.draw_airport_line(draw, s8_flughafen_minutes)
         else:
             self.device.contrast(0xFF)
             self.show_idle_state()

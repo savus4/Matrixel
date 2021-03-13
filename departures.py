@@ -192,3 +192,4 @@ class Departures:
             else:
                 return True
             i += 1
+        return False
