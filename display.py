@@ -11,9 +11,10 @@ import time
 from helper import make_string_from_list, get_width, get_image_as_list
 from datetime import datetime, timedelta
 from datetime import time as dtTime
+import copy
 from line_manager import Line_Manager
 from pathlib import Path
-from sonos_state import Sonos_State
+from sonos_state import Sonos_State, Sonos_Room
 
 
 class DisplayDriver():
@@ -28,31 +29,41 @@ class DisplayDriver():
         self.device = max7219(self.serial, block_orientation=block_orientation,
                               rotate=rotate or 0, blocks_arranged_in_reverse_order=inreverse,
                               width=self.width, height=height)
-        self.device.contrast(0xFF)
+        self.device.contrast(0x0)
+
         self.s8_flughafen_minutes_cache = list()
         self.s8_herrsching_minutes_cache = list()
         self.minute_cache = 0
         self.seconds_cache = 0
         self.number_next_connections = 3
+
         self.refresh_counter = 0
         self.message_counter = 0
+        self.playing_screen_counter = 0
+
         self.last_refresh_cache = datetime.now()
         self.is_sleeping = False
         self.should_sleep = False
         self.sleep_wait_counter = 0
+
         self.line_manager = line_manager
+
         self.msg_manager = msg_manager
-        self.sonos_state = sonos_state
         self.cur_msg_cache = None
+
+        self.sonos_state = sonos_state
+        self.cur_playing_cache = None
+        self.sonos_changed = None
+
         if startup_screen:
             self.start_up_screen()
 
     def set_brightness(self):
         now_time = datetime.utcnow().time()
         if now_time >= dtTime(17, 30) or now_time <= dtTime(6, 30):
-            self.device.contrast(0xFF)
+            self.device.contrast(0x0)
         else:
-            self.device.contrast(0xFF)
+            self.device.contrast(0x0)
 
     def start_up_screen(self, display_time=2):
         with canvas(self.device) as draw:
@@ -65,7 +76,7 @@ class DisplayDriver():
         length = len(message) - 1
         for letter in message:
             length += self.calc_length_of_letter(letter)
-        print(str(length))
+        #print(str(length))
         return length
 
     def calc_length_of_letter(self, letter):
@@ -119,7 +130,7 @@ class DisplayDriver():
                 
     def sleep_screen(self):
         if not self.is_sleeping:
-            self.device.contrast(0xFF)
+            self.device.contrast(0x0)
             sleep_file = Path("/home/pi/Documents/mvg_departure_monitor/icons/moon.txt")
             with canvas(self.device) as draw:
                 draw.point([63,0], fill="white")
@@ -139,6 +150,7 @@ class DisplayDriver():
 
     def show_idle_state(self):
         minutes_since_last_refresh = None
+        self.cur_playing_cache = None
         if self.line_manager.last_refresh():
             minutes_since_last_refresh = datetime.now() - self.line_manager.last_refresh()
 
@@ -199,7 +211,7 @@ class DisplayDriver():
             self.new_message = False
             if id(possibly_new_message) != id(self.cur_msg_cache):
                 self.cur_msg_cache = possibly_new_message
-                print("new message!!!!!!!!!!!!!")
+                print("new message")
                 self.new_message = True
             return True
         else:
@@ -238,12 +250,49 @@ class DisplayDriver():
 
     def playing_screen(self):
         playing_rooms = self.sonos_state.get_playing_rooms()
+        self.refresh_counter = 0
         if playing_rooms:
-            with canvas(self.device) as draw:
-                text(draw, (0, 0), list(playing_rooms.values())[0].current_track.name,
+            #print("playing screen started, sonos_changed: " + str(self.sonos_changed))
+            self.playing_screen_counter += 1
+            title_length = self.calc_string_length(list(playing_rooms.values())[0].current_track.name)
+            artist_length = self.calc_string_length(list(playing_rooms.values())[0].current_track.artist)
+            if artist_length > title_length:
+                display_string_length = artist_length
+            else:
+                display_string_length = title_length
+            text_begin = 0
+            if self.sonos_changed:
+                self.playing_screen_counter = 0
+            if display_string_length > self.width:
+                animation_delay = 60
+                if self.playing_screen_counter > animation_delay:
+                    #print("message counter in if: " + str(self.message_counter))
+                    text_begin = animation_delay - self.playing_screen_counter
+                if text_begin < (-display_string_length - 7):
+                    #print("true!")
+                    self.playing_screen_counter = 0
+            if (display_string_length > self.width) or self.sonos_changed:
+                upper_shift = text_begin if title_length > self.width else 0
+                lower_shift = text_begin if artist_length > self.width else 0
+                with canvas(self.device) as draw:
+                    text(draw, (upper_shift, 0), list(playing_rooms.values())[0].current_track.name,
+                            fill="white", font=proportional(LCD_FONT))
+                    text(draw, (lower_shift, 9), list(playing_rooms.values())[0].current_track.artist,
                         fill="white", font=proportional(LCD_FONT))
-                text(draw, (0, 9), list(playing_rooms.values())[0].current_track.artist,
-                    fill="white", font=proportional(LCD_FONT))
+
+    def check_playing_screen(self):
+        if self.sonos_state.any_room_is_playing():
+            #print(str(self.cur_playing_cache))
+            #if isinstance(self.cur_playing_cache, Sonos_Room):
+            #   print("cache: " + self.cur_playing_cache.current_track.name + ", now: " + list(self.sonos_state.get_playing_rooms().values())[0].current_track.name)
+            if not isinstance(self.cur_playing_cache, Sonos_Room) or (self.cur_playing_cache.current_track.name != list(self.sonos_state.get_playing_rooms().values())[0].current_track.name):
+                #print("sonos changed")
+                self.sonos_changed = True
+                self.cur_playing_cache = copy.deepcopy(list(self.sonos_state.get_playing_rooms().values())[0])
+                return True
+            self.sonos_changed = False
+            return True
+        return False
 
     def main_layout(self):
         s_bahn_active = False
@@ -253,7 +302,7 @@ class DisplayDriver():
         if self.check_sleep_mode():
             self.sleep_screen()
             return
-        if self.sonos_state.any_room_is_playing():
+        if self.check_playing_screen():
             self.playing_screen()
             return
         if s_bahn_active:
@@ -270,5 +319,4 @@ class DisplayDriver():
                         self.draw_city_line(draw, s8_herrsching_minutes)
                         self.draw_airport_line(draw, s8_flughafen_minutes)
         else:
-            self.device.contrast(0xFF)
             self.show_idle_state()
