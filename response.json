@@ -1,0 +1,27 @@
+{   'currentTrack': {'absoluteAlbumArtUri': 'https: //i.scdn.co/image/ab67616d0000b2733b3dd54a61e1ef77ac64fd8b',
+    'album': 'Dawn',
+    'albumArtUri': 'https: //i.scdn.co/image/ab67616d0000b2733b3dd54a61e1ef77ac64fd8b',
+    'artist': 'RY X',
+    'duration': 310,
+    'stationName': '',
+    'title': 'Howling',
+    'trackUri': 'x-sonos-spotify:spotify:track: 4ySB5vX2121c5L705ZbZTq?sid=9&flags=0&sn=3',
+    'type': 'track',
+    'uri': 'x-sonos-spotify:spotify:track: 4ySB5vX2121c5L705ZbZTq?sid=9&flags=0&sn=3'
+    },
+'elapsedTime': 16,
+'elapsedTimeFormatted': '00: 00: 16',
+'equalizer': {'bass': 0, 'loudness': True, 'treble': 0
+    },
+'mute': False,
+'nextTrack': {'album': "MUGGLES' MANSION",
+ 'artist': 'CODE KUNST',
+ 'duration': 0,
+ 'title': 'PARACHUTE (Feat. OHHYUK & Dok2)'
+    },
+'playMode': {'crossfade': False, 'repeat': 'none', 'shuffle': False
+    },
+'playbackState': 'PAUSED_PLAYBACK',
+'trackNo': 1,
+'volume': 12
+}

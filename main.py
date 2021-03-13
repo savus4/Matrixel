@@ -6,6 +6,7 @@ from display import DisplayDriver
 from Messages_Manager import Messages_Manager
 from departures import Departures
 from line_manager import Line_Manager
+from sonos_state import Sonos_State
 from stations import s8
 import flask_server
 from luma.core.sprite_system import framerate_regulator
@@ -17,9 +18,11 @@ def main():
     s8_city = Departures(s8.name, s8.into_city, s8.into_city_warning, s8.into_city_times)
     s8_airport = Departures(s8.name, s8.to_airport, s8.to_airport_warning, s8.to_airport_times)
     lines = Line_Manager([s8_city, s8_airport])
+
+    sonos_state = Sonos_State("http://localhost:5005", ["Beam", "Küche", "Esszimmer"])
     
     # Init display
-    display = DisplayDriver(msg_manager, lines, startup_screen=True)
+    display = DisplayDriver(msg_manager, lines, sonos_state, startup_screen=True)
 
     # Get data
     #poll_time = 30 #seconds

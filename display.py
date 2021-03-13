@@ -13,11 +13,12 @@ from datetime import datetime, timedelta
 from datetime import time as dtTime
 from line_manager import Line_Manager
 from pathlib import Path
+from sonos_state import Sonos_State
 
 
 class DisplayDriver():
 
-    def __init__(self, msg_manager, line_manager: Line_Manager, startup_screen=True):
+    def __init__(self, msg_manager, line_manager: Line_Manager, sonos_state: Sonos_State, startup_screen=True):
         block_orientation = -90
         rotate = 0
         inreverse = False
@@ -41,6 +42,7 @@ class DisplayDriver():
         self.sleep_wait_counter = 0
         self.line_manager = line_manager
         self.msg_manager = msg_manager
+        self.sonos_state = sonos_state
         self.cur_msg_cache = None
         if startup_screen:
             self.start_up_screen()
@@ -213,6 +215,15 @@ class DisplayDriver():
                     print(str(e))
                     pass
 
+    def playing_screen(self):
+        playing_rooms = self.sonos_state.get_playing_rooms()
+        if playing_rooms:
+            with canvas(self.device) as draw:
+                text(draw, (0, 0), list(playing_rooms.values())[0].current_track.name,
+                        fill="white", font=proportional(CP437_FONT))
+                text(draw, (text_begin, 9), list(playing_rooms.values())[0].current_track.artist,
+                    fill="white", font=proportional(LCD_FONT))
+
     def main_layout(self):
         if self.check_new_message():
             self.display_message()
@@ -220,6 +231,8 @@ class DisplayDriver():
         if self.check_sleep_mode():
             self.sleep_screen()
             return
+        if self.sonos_state.any_room_is_playing():
+            self.playing_screen()
         if False:
             s8_flughafen_minutes = self.line_manager.get("s8", "flughafen münchen").get_next_connections_excerpt(3)
             s8_herrsching_minutes = self.line_manager.get("s8", "herrsching").get_next_connections_excerpt(3)
