@@ -60,6 +60,27 @@ class DisplayDriver():
                     fill="white", font=proportional(CP437_FONT))
         time.sleep(display_time)
 
+    def calc_string_length(self, message):
+        # Initialize with the blank spaces between the letters
+        length = len(message) - 1
+        for letter in message:
+            length += self.calc_length_of_letter(letter)
+        print(str(length))
+        return length
+
+    def calc_length_of_letter(self, letter):
+        #no €, 
+        if letter in ["!"]:
+            return 1
+        if letter in [",", ".", ":", ";", "'"]:
+            return 2
+        if letter in ["i", "l", "I", str(1), " "]:
+            return 3
+        elif letter in ["j", "k", "<", ">"]:
+            return 4
+        else:
+            return 5
+
     def display_minutes(self, draw, departures: list, cache, x, y):
         for departure in departures:
             minute = departure.minutes()
@@ -221,10 +242,11 @@ class DisplayDriver():
             with canvas(self.device) as draw:
                 text(draw, (0, 0), list(playing_rooms.values())[0].current_track.name,
                         fill="white", font=proportional(CP437_FONT))
-                text(draw, (text_begin, 9), list(playing_rooms.values())[0].current_track.artist,
+                text(draw, (0, 9), list(playing_rooms.values())[0].current_track.artist,
                     fill="white", font=proportional(LCD_FONT))
 
     def main_layout(self):
+        s_bahn_active = False
         if self.check_new_message():
             self.display_message()
             return
@@ -233,7 +255,8 @@ class DisplayDriver():
             return
         if self.sonos_state.any_room_is_playing():
             self.playing_screen()
-        if False:
+            return
+        if s_bahn_active:
             s8_flughafen_minutes = self.line_manager.get("s8", "flughafen münchen").get_next_connections_excerpt(3)
             s8_herrsching_minutes = self.line_manager.get("s8", "herrsching").get_next_connections_excerpt(3)
             if not self.line_manager.check_as_usual():

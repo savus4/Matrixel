@@ -19,6 +19,7 @@ def main():
     s8_airport = Departures(s8.name, s8.to_airport, s8.to_airport_warning, s8.to_airport_times)
     lines = Line_Manager([s8_city, s8_airport])
 
+    #sonos_state = Sonos_State("http://192.168.178.21:5005", ["Beam", "Küche", "Esszimmer"])
     sonos_state = Sonos_State("http://localhost:5005", ["Beam", "Küche", "Esszimmer"])
     
     # Init display
@@ -34,7 +35,7 @@ def main():
     threading.Thread(target=flask_server.start_server, args=[display.toggle_sleep_mode, msg_manager]).start()
 
     curr_time = time.time()
-    regulator = framerate_regulator(fps=20)
+    regulator = framerate_regulator(fps=15)
     while(True):
         with regulator:
             #print("sleeping: " + str(display_sleeping))

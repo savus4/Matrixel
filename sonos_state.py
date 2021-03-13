@@ -21,7 +21,7 @@ class Sonos_State():
         for room_name in room_names:
             self.rooms[room_name] = Sonos_Room(room_name)
 
-    def room_is_playing(room_name: str):
+    def room_is_playing(self, room_name: str):
         return self.rooms[room_name].playing_state == playing_state.playing
 
     def any_room_is_playing(self):
@@ -42,7 +42,7 @@ class Sonos_State():
                 for room in self.rooms.values():
                     while True:
                         try:
-                            resp: requests.Response = requests.get(url, timeout=1.0)
+                            resp: requests.Response = requests.get(url + "/" + room.name + "/state", timeout=3.0)
                             if resp == None or resp.content == None or len(resp.content) == 0:
                                 print("Failed to fetch at " + str(dt.datetime.now()))
                                 self.minutes_since_last_refresh = dt.datetime.now() - self.last_refresh
@@ -53,6 +53,7 @@ class Sonos_State():
                             print("Failed to fetch at " + str(dt.datetime.now()) + "\n" + 
                                     "Reason: " + str(e))
                             time.sleep(2)
+                    #pprint(resp.content)
                     room.process_new_state(json.loads(resp.content))
                 time.sleep(1)
 
@@ -98,12 +99,12 @@ class Track():
     def __init__(self, current_track_object: json):
         if "title" in current_track_object.keys():
             self.name = current_track_object["title"]
-            self.artist = current_track_object["album"]
+            self.artist = current_track_object["artist"]
             self.duration = current_track_object["duration"]
             self.album = current_track_object["album"]
 
 if __name__ == "__main__":
-    state = Sonos_State("http://192.168.178.51:5005/state", ["Beam", "Küche", "Esszimmer"])
+    state = Sonos_State("http://192.168.178.51:5005", ["Beam", "Küche", "Esszimmer"])
     while True:
         print(str(state))
         time.sleep(1)
