@@ -67,7 +67,7 @@ class DisplayDriver():
 
     def start_up_screen(self, display_time=2):
         with canvas(self.device) as draw:
-                text(draw, (0, 4), "Dohl-Info",
+                text(draw, (0, 4), "Matrixel",
                     fill="white", font=proportional(CP437_FONT))
         time.sleep(display_time)
 
