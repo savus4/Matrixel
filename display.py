@@ -63,7 +63,7 @@ class DisplayDriver():
         if now_time >= dtTime(17, 30) or now_time <= dtTime(6, 30):
             self.device.contrast(0x0)
         else:
-            self.device.contrast(0x0)
+            self.device.contrast(0x70)
 
     def start_up_screen(self, display_time=2):
         with canvas(self.device) as draw:
@@ -294,6 +294,19 @@ class DisplayDriver():
             return True
         return False
 
+    def departures_screen(self):
+        s8_flughafen_minutes = self.line_manager.get("s8", "flughafen münchen").get_next_connections_excerpt(3)
+        s8_herrsching_minutes = self.line_manager.get("s8", "herrsching").get_next_connections_excerpt(3)
+        if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
+                s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
+            self.set_brightness()
+            self.refresh_counter = 0
+            self.s8_flughafen_minutes_cache = s8_flughafen_minutes
+            self.s8_herrsching_minutes_cache = s8_herrsching_minutes
+            with canvas(self.device) as draw:
+                self.draw_city_line(draw, s8_herrsching_minutes)
+                self.draw_airport_line(draw, s8_flughafen_minutes)
+
     def main_layout(self):
         s_bahn_active = False
         if self.check_new_message():
@@ -305,18 +318,8 @@ class DisplayDriver():
         if self.check_playing_screen():
             self.playing_screen()
             return
-        if s_bahn_active:
-            s8_flughafen_minutes = self.line_manager.get("s8", "flughafen münchen").get_next_connections_excerpt(3)
-            s8_herrsching_minutes = self.line_manager.get("s8", "herrsching").get_next_connections_excerpt(3)
-            if not self.line_manager.check_as_usual():
-                if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
-                        s8_herrsching_minutes == self.s8_herrsching_minutes_cache):
-                    self.set_brightness()
-                    self.refresh_counter = 0
-                    self.s8_flughafen_minutes_cache = s8_flughafen_minutes
-                    self.s8_herrsching_minutes_cache = s8_herrsching_minutes
-                    with canvas(self.device) as draw:
-                        self.draw_city_line(draw, s8_herrsching_minutes)
-                        self.draw_airport_line(draw, s8_flughafen_minutes)
+        if s_bahn_active and not self.line_manager.check_as_usual():
+            self.departures_screen()
+            return
         else:
             self.show_idle_state()
