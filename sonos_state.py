@@ -98,6 +98,10 @@ class Sonos_Room():
 class Track():
 
     def __init__(self, current_track_object: json):
+        self.name = ""
+        self.artist = ""
+        self.duration = ""
+        self.album = ""
         if "title" in current_track_object.keys():
             self.name = current_track_object["title"]
             self.artist = current_track_object["artist"]

@@ -15,11 +15,12 @@ import copy
 from line_manager import Line_Manager
 from pathlib import Path
 from sonos_state import Sonos_State, Sonos_Room
+from display_state import display_state
 
 
 class DisplayDriver():
 
-    def __init__(self, msg_manager, line_manager: Line_Manager, sonos_state: Sonos_State, startup_screen=True):
+    def __init__(self, startup_screen=True):
         block_orientation = -90
         rotate = 0
         inreverse = False
@@ -31,6 +32,11 @@ class DisplayDriver():
                               width=self.width, height=height)
         self.device.contrast(0x0)
 
+        self.screens = list()
+
+        self.rolling_frame_counter = 0
+        self.last_frame = None
+
         self.s8_flughafen_minutes_cache = list()
         self.s8_herrsching_minutes_cache = list()
         self.minute_cache = 0
@@ -40,23 +46,19 @@ class DisplayDriver():
         self.refresh_counter = 0
         self.message_counter = 0
         self.playing_screen_counter = 0
+        self.state = display_state.startup_screen
 
         self.last_refresh_cache = datetime.now()
         self.is_sleeping = False
         self.should_sleep = False
         self.sleep_wait_counter = 0
 
-        self.line_manager = line_manager
-
-        self.msg_manager = msg_manager
-        self.cur_msg_cache = None
-
-        self.sonos_state = sonos_state
-        self.cur_playing_cache = None
-        self.sonos_changed = None
-
         if startup_screen:
             self.start_up_screen()
+
+    def add_screen(self, screen):
+        screen.add_device(self.device)
+        self.screens.append(screen)
 
     def set_brightness(self):
         now_time = datetime.utcnow().time()
@@ -66,6 +68,7 @@ class DisplayDriver():
             self.device.contrast(0x70)
 
     def start_up_screen(self, display_time=2):
+        self.state = display_state.startup_screen
         with canvas(self.device) as draw:
                 text(draw, (0, 4), "Matrixel",
                     fill="white", font=proportional(CP437_FONT))
@@ -136,6 +139,7 @@ class DisplayDriver():
                 draw.point([63,0], fill="white")
                 # draw.point(get_image_as_list(sleep_file, 55, 2), fill="white")
             self.is_sleeping = True
+            self.state = display_state.sleeping
 
     def toggle_sleep_mode(self):
         if self.is_sleeping:
@@ -174,6 +178,7 @@ class DisplayDriver():
             with canvas(self.device) as draw:
                 draw.point([0, 0], fill="white")
         self.refresh_counter += 1
+        self.state = display_state.idle
 
     def reset_refresh_counter_at(self, number):
         if self.refresh_counter >= number:
@@ -251,6 +256,7 @@ class DisplayDriver():
     def playing_screen(self):
         playing_rooms = self.sonos_state.get_playing_rooms()
         self.refresh_counter = 0
+        self.state = display_state.playing
         if playing_rooms:
             #print("playing screen started, sonos_changed: " + str(self.sonos_changed))
             self.playing_screen_counter += 1
@@ -295,6 +301,7 @@ class DisplayDriver():
         return False
 
     def departures_screen(self):
+        self.state = display_state.departures
         s8_flughafen_minutes = self.line_manager.get("s8", "flughafen münchen").get_next_connections_excerpt(3)
         s8_herrsching_minutes = self.line_manager.get("s8", "herrsching").get_next_connections_excerpt(3)
         if not ((s8_flughafen_minutes == self.s8_flughafen_minutes_cache) and
@@ -307,6 +314,32 @@ class DisplayDriver():
                 self.draw_city_line(draw, s8_herrsching_minutes)
                 self.draw_airport_line(draw, s8_flughafen_minutes)
 
+    def black_screen(self):
+        if not self.state == display_state.black:
+            #print("blacked")
+            self.device.clear()
+            self.state = display_state.black
+
+    def refresh_screen_priorities(self):
+        for screen in self.screens:
+            screen.refresh_priority()
+
+    def display_highest_priority_screen(self):
+        if self.screens:
+            self.get_highest_priority_screen().display(self.rolling_frame_counter, self.last_frame)
+
+    def get_highest_priority_screen(self):
+        if self.screens:
+            return sorted(self.screens, key= lambda x: x.priority)[0]
+        else:
+            return None
+
+    def set_screen_environment(self):
+        self.rolling_frame_counter += 1
+        if self.rolling_frame_counter >= 999999999:
+            self.rolling_frame_counter = 0
+        self.last_frame = self.get_highest_priority_screen()
+            
     def main_layout(self):
         s_bahn_active = False
         if self.check_new_message():
@@ -322,4 +355,11 @@ class DisplayDriver():
             self.departures_screen()
             return
         else:
-            self.show_idle_state()
+            #self.show_idle_state()
+            #print("black")
+            self.black_screen()
+
+    def new_main(self):
+        self.refresh_screen_priorities()
+        self.display_highest_priority_screen()
+        self.set_screen_environment()
