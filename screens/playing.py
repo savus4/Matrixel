@@ -6,12 +6,12 @@ class playing(scrolling_text):
         super().__init__(base_priority, elevated_priority, animatable=True)
         self.sonos_state = sonos_state
 
-    def display(self, rolling_frame_counter, last_frame):
+    def display(self, screen_changed):
         #self.state = display_state.playing
         if self.priority != self.elevated_priority:
             self.set_first_line("No Active")
             self.set_second_line("Player.")
-        super().display(rolling_frame_counter, last_frame)
+        super().display(screen)
 
     def refresh_priority(self):
         playing_rooms = self.sonos_state.get_playing_rooms()

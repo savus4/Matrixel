@@ -26,8 +26,8 @@ class scrolling_text(screen):
             self.second_line = text
             self.text_changed = True
 
-    def display(self, rolling_frame_counter, last_frame):
-        super().display(rolling_frame_counter, last_frame)
+    def display(self, screen_changed):
+        super().display(screen_changed)
 
         first_line_length = calc_string_length(self.first_line)
         second_line_length = calc_string_length(self.second_line)
